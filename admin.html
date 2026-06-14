@@ -15,8 +15,8 @@
         .message-bubble { background: #e0e7ff; padding: 6px 12px; border-radius: 12px; display: inline-block; max-width: 100%; }
         .reply-bubble { background: #d1fae5; padding: 6px 12px; border-radius: 12px; display: inline-block; max-width: 100%; margin-top: 4px; }
         .toast-msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; z-index: 10002; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-        .new-message-badge { animation: pulse 0.5s; }
-        @keyframes pulse { 0% { background-color: #fee2e2; } 100% { background-color: transparent; } }
+        .has-unread { animation: pulse 0.5s; background: #fef2f2; }
+        @keyframes pulse { 0% { background: #fee2e2; } 100% { background: transparent; } }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -37,8 +37,8 @@
 
         <div class="bg-white rounded-lg shadow overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <h2 class="font-bold text-lg"><i class="fas fa-list mr-2"></i>对话列表（按用户分组）</h2>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600"><i class="fas fa-sync-alt mr-1"></i>刷新</button>
+                <h2 class="font-bold text-lg"><i class="fas fa-list mr-2"></i>对话列表（按用户分组）- 实时更新</h2>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600"><i class="fas fa-sync-alt mr-1"></i>手动刷新</button>
             </div>
             <div id="conversationsContainer" class="divide-y"><div class="text-center py-8 text-gray-400">加载中...</div></div>
         </div>
@@ -72,7 +72,8 @@
         (function() {
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
             let currentConversation = null;
             let currentUserEmail = null;
@@ -88,29 +89,38 @@
                 setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
             
-            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-            
-            async function loadMessages() {
-                const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: true });
-                if (error) return [];
-                return data || [];
+            function escapeHtml(str) { 
+                if (!str) return ''; 
+                return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); 
             }
             
             async function renderConversations() {
-                const messages = await loadMessages();
+                const { data: messages, error } = await _supabase
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .order('created_at', { ascending: true });
+                
+                if (error) { console.error(error); return; }
+                
                 const groups = {};
-                for (let msg of messages) {
+                for (let msg of messages || []) {
                     if (!groups[msg.email]) groups[msg.email] = { name: msg.name, email: msg.email, messages: [] };
                     groups[msg.email].messages.push(msg);
                 }
+                
                 const totalUsers = Object.keys(groups).length;
                 document.getElementById('userCount').innerText = totalUsers;
-                let totalMessages = messages.length;
-                let unreadCount = messages.filter(m => !m.reply || m.reply === '').length;
+                const totalMessages = messages?.length || 0;
+                const unreadCount = (messages || []).filter(m => !m.reply || m.reply === '').length;
                 document.getElementById('totalCount').innerText = totalMessages;
                 document.getElementById('unreadCount').innerText = unreadCount;
+                
                 const container = document.getElementById('conversationsContainer');
-                if (Object.keys(groups).length === 0) { container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无对话</div>'; return; }
+                if (Object.keys(groups).length === 0) { 
+                    container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无对话</div>'; 
+                    return; 
+                }
+                
                 let html = '';
                 for (let email in groups) {
                     const group = groups[email];
@@ -118,15 +128,15 @@
                     const hasUnread = group.messages.some(m => !m.reply || m.reply === '');
                     const lastTime = new Date(lastMsg.created_at).toLocaleString('zh-CN');
                     html += `
-                        <div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'new-message-badge' : ''}" data-email="${escapeHtml(email)}">
-                            <div class="flex-1 cursor-pointer" onclick="openConversation('${escapeHtml(email)}')">
+                        <div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}">
+                            <div class="flex-1 cursor-pointer" onclick="window.openConversation('${escapeHtml(email)}')">
                                 <div class="font-semibold">${escapeHtml(group.name)}</div>
                                 <div class="text-sm text-gray-500">${escapeHtml(email)}</div>
                                 <div class="text-sm text-gray-400 mt-1 truncate max-w-md">${escapeHtml(lastMsg.message.substring(0, 60))}</div>
                             </div>
                             <div class="text-right flex items-center gap-3">
                                 <div><div class="text-xs text-gray-400">${lastTime}</div>${hasUnread ? '<div class="mt-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">待回复</div>' : '<div class="mt-1 text-green-500 text-xs">已回复</div>'}</div>
-                                <button class="delete-btn text-red-500 hover:text-red-700 p-2" onclick="event.stopPropagation(); confirmDeleteUser('${escapeHtml(email)}')"><i class="fas fa-trash-alt"></i></button>
+                                <button class="delete-btn text-red-500 hover:text-red-700 p-2" onclick="event.stopPropagation(); window.confirmDeleteUser('${escapeHtml(email)}')"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>
                     `;
@@ -136,7 +146,7 @@
             
             window.openConversation = async function(email) {
                 currentUserEmail = email;
-                const { data } = await supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
+                const { data } = await _supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
                 if (data && data.length > 0) {
                     currentConversation = data;
                     const userName = data[0].name;
@@ -163,7 +173,7 @@
             
             async function deleteUserConversations() {
                 if (!pendingDeleteEmail) return;
-                const { error } = await supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail);
+                const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail);
                 if (error) { showToast('删除失败: ' + error.message, true); }
                 else { showToast('已删除该用户所有对话'); renderConversations(); }
                 document.getElementById('deleteConfirmModal').classList.add('hidden');
@@ -177,7 +187,7 @@
                 const unreadMessages = currentConversation.filter(m => !m.reply || m.reply === '');
                 if (unreadMessages.length === 0) { showToast('所有消息都已回复', true); return; }
                 const targetMsg = unreadMessages[unreadMessages.length - 1];
-                const { error } = await supabase.from(TABLE_NAME).update({ reply: reply, is_replied: true }).eq('id', targetMsg.id);
+                const { error } = await _supabase.from(TABLE_NAME).update({ reply: reply, is_replied: true }).eq('id', targetMsg.id);
                 if (error) { showToast('回复失败: ' + error.message, true); }
                 else {
                     showToast('回复成功');
@@ -187,21 +197,16 @@
                 }
             }
             
-            // 设置实时监听 - 监听所有变更
-            function setupRealtimeSubscription() {
+            function setupRealtime() {
                 if (realtimeChannel) {
-                    supabase.removeChannel(realtimeChannel);
+                    _supabase.removeChannel(realtimeChannel);
                 }
-                
-                realtimeChannel = supabase
+                realtimeChannel = _supabase
                     .channel('admin-realtime')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: TABLE_NAME }, 
-                        (payload) => {
-                            console.log('后台收到实时变更:', payload);
-                            renderConversations();
-                        }
-                    )
+                    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, (payload) => {
+                        console.log('后台收到实时变更:', payload.eventType);
+                        renderConversations();
+                    })
                     .subscribe((status) => {
                         console.log('后台实时订阅状态:', status);
                     });
@@ -213,9 +218,8 @@
             document.getElementById('cancelDeleteBtn').onclick = () => { document.getElementById('deleteConfirmModal').classList.add('hidden'); document.getElementById('deleteConfirmModal').classList.remove('flex'); pendingDeleteEmail = null; };
             document.getElementById('confirmDeleteBtn').onclick = deleteUserConversations;
             
-            // 初始化
             renderConversations();
-            setupRealtimeSubscription();
+            setupRealtime();
         })();
     </script>
 </body>

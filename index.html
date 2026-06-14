@@ -41,7 +41,7 @@
             cursor: pointer;
             width: 32px;
             height: 32px;
- display: flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
@@ -195,11 +195,9 @@
         <div class="container mx-auto px-4 py-20 text-center">
             <h1 class="text-5xl font-bold text-indigo-900 mb-4">智能客服</h1>
             <p class="text-xl text-gray-600 mb-8">有问题？点击右下角按钮，立即与我们对话</p>
-            <div class="flex justify-center gap-4">
-                <button id="openChatLanding" class="bg-indigo-600 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-indigo-700 transition">
-                    <i class="fas fa-comment-dots mr-2"></i>开始对话
-                </button>
-            </div>
+            <button id="openChatLanding" class="bg-indigo-600 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-indigo-700 transition">
+                <i class="fas fa-comment-dots mr-2"></i>开始对话
+            </button>
         </div>
         <div class="container mx-auto px-4 py-12">
             <div class="grid md:grid-cols-3 gap-6 text-center">
@@ -219,9 +217,7 @@
             <button class="back-btn" id="closeChatInterface"><i class="fas fa-arrow-left"></i></button>
             <div><div style="font-weight: bold;">客服助手</div><div style="font-size: 12px; opacity: 0.8;">在线</div></div>
         </div>
-        <div class="messages-container" id="messagesContainer">
-            <div class="admin message"><div class="bubble">您好！我是客服助手，请问有什么可以帮助您的？</div></div>
-        </div>
+        <div class="messages-container" id="messagesContainer"></div>
         <div class="input-area">
             <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
             <button class="send-btn" id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
@@ -240,15 +236,18 @@
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
+        // 使用立即执行函数避免全局变量冲突
         (function() {
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
             
             let currentUser = { id: null, name: null, email: null };
             let realtimeChannel = null;
             
+            // DOM 元素
             const userInfoModal = document.getElementById('userInfoModal');
             const chatInterface = document.getElementById('chatInterface');
             const messagesContainer = document.getElementById('messagesContainer');
@@ -269,7 +268,148 @@
                 setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
             
-            // 保存用户信息到本地
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+            
+            function scrollToBottom() {
+                setTimeout(() => {
+                    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 100);
+            }
+            
+            function addMessageToUI(message, isUser, time, messageId = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = isUser ? 'message user' : 'message admin';
+                if (messageId) messageDiv.setAttribute('data-msg-id', messageId);
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'bubble';
+                bubbleDiv.innerHTML = (message || '').replace(/\n/g, '<br>');
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.innerText = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                messageDiv.appendChild(bubbleDiv);
+                messageDiv.appendChild(timeDiv);
+                messagesContainer.appendChild(messageDiv);
+                scrollToBottom();
+            }
+            
+            // 更新回复（不重新加载全部）
+            function updateReplyInUI(messageId, replyText) {
+                const allMessages = messagesContainer.querySelectorAll('.message.user');
+                for (let userMsg of allMessages) {
+                    if (userMsg.getAttribute('data-msg-id') == messageId) {
+                        // 检查是否已有回复
+                        let nextSibling = userMsg.nextElementSibling;
+                        if (nextSibling && nextSibling.classList && nextSibling.classList.contains('admin') && nextSibling.getAttribute('data-reply-for') == messageId) {
+                            // 更新现有回复
+                            const bubble = nextSibling.querySelector('.bubble');
+                            if (bubble) bubble.innerHTML = escapeHtml(replyText);
+                        } else {
+                            // 添加新回复
+                            const replyDiv = document.createElement('div');
+                            replyDiv.className = 'message admin';
+                            replyDiv.setAttribute('data-reply-for', messageId);
+                            replyDiv.innerHTML = `<div class="bubble">${escapeHtml(replyText)}</div><div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
+                            if (userMsg.nextSibling) {
+                                messagesContainer.insertBefore(replyDiv, userMsg.nextSibling);
+                            } else {
+                                messagesContainer.appendChild(replyDiv);
+                            }
+                        }
+                        scrollToBottom();
+                        break;
+                    }
+                }
+            }
+            
+            async function loadUserMessages() {
+                if (!currentUser.email) return;
+                const { data, error } = await _supabase
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .eq('email', currentUser.email)
+                    .order('created_at', { ascending: true });
+                
+                if (error) { console.error(error); return; }
+                
+                messagesContainer.innerHTML = '';
+                addMessageToUI('您好！我是客服助手，请问有什么可以帮助您的？', false, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                
+                if (data && data.length) {
+                    for (let msg of data) {
+                        const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        addMessageToUI(msg.message, true, time, msg.id);
+                        if (msg.reply && msg.reply.trim()) {
+                            addMessageToUI(msg.reply, false, time, null);
+                        }
+                    }
+                }
+                scrollToBottom();
+            }
+            
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+                if (!message) return;
+                sendBtn.disabled = true;
+                const tempTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                addMessageToUI(message, true, tempTime);
+                messageInput.value = '';
+                messageInput.focus();
+                
+                const { data, error } = await _supabase
+                    .from(TABLE_NAME)
+                    .insert([{ name: currentUser.name, email: currentUser.email, message: message, reply: '', is_replied: false, created_at: new Date().toISOString() }])
+                    .select();
+                
+                if (error) { 
+                    console.error(error); 
+                    showToast('发送失败', true);
+                } else {
+                    showToast('已发送');
+                    if (data && data[0]) {
+                        const lastMsg = messagesContainer.querySelector('.message.user:last-child');
+                        if (lastMsg) lastMsg.setAttribute('data-msg-id', data[0].id);
+                    }
+                }
+                sendBtn.disabled = false;
+                scrollToBottom();
+            }
+            
+            function setupRealtimeSubscription() {
+                if (realtimeChannel) {
+                    _supabase.removeChannel(realtimeChannel);
+                }
+                
+                realtimeChannel = _supabase
+                    .channel(`user-chat-${currentUser.email}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: TABLE_NAME,
+                        filter: `email=eq.${currentUser.email}`
+                    }, (payload) => {
+                        console.log('收到实时更新:', payload);
+                        const oldReply = payload.old.reply;
+                        const newReply = payload.new.reply;
+                        const messageId = payload.new.id;
+                        if ((!oldReply || oldReply === '') && newReply && newReply !== '') {
+                            showToast('收到客服回复');
+                            updateReplyInUI(messageId, newReply);
+                        }
+                    })
+                    .subscribe((status) => {
+                        console.log('实时订阅状态:', status);
+                    });
+            }
+            
+            // 初始化用户
             const savedUser = localStorage.getItem('chat_user');
             if (savedUser) {
                 try {
@@ -292,217 +432,27 @@
                 userInfoModal.style.display = 'none';
                 loadUserMessages();
                 setupRealtimeSubscription();
-                openChatInterface();
-            };
-            
-            function openChatInterface() {
                 chatInterface.classList.add('open');
                 messageInput.focus();
-                scrollToBottom();
-            }
-            function closeChatInterfaceFn() { chatInterface.classList.remove('open'); }
-            
-            openChatLanding.onclick = () => { 
-                if (!currentUser.name) userInfoModal.style.display = 'flex'; 
-                else { openChatInterface(); loadUserMessages(); } 
             };
-            floatingChatBtn.onclick = () => { 
-                if (!currentUser.name) userInfoModal.style.display = 'flex'; 
-                else { openChatInterface(); loadUserMessages(); } 
-            };
-            closeChatInterface.onclick = closeChatInterfaceFn;
             
-            function addMessageToUI(message, isUser, time) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = isUser ? 'message user' : 'message admin';
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'bubble';
-                bubbleDiv.innerHTML = (message || '').replace(/\n/g, '<br>');
-                const timeDiv = document.createElement('div');
-                timeDiv.className = 'message-time';
-                timeDiv.innerText = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                messageDiv.appendChild(bubbleDiv);
-                messageDiv.appendChild(timeDiv);
-                messagesContainer.appendChild(messageDiv);
-                scrollToBottom();
-            }
-            
-            function scrollToBottom() { setTimeout(() => { messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 100); }
-            
-            // 更新单条消息的回复（不重新加载全部）
-            function updateReplyForMessage(messageId, replyText) {
-                const existingMessages = messagesContainer.querySelectorAll('.message');
-                // 找到对应消息的回复位置
-                for (let i = 0; i < existingMessages.length; i++) {
-                    const msg = existingMessages[i];
-                    if (msg.getAttribute('data-msg-id') === messageId) {
-                        // 如果已经有了回复气泡，更新它
-                        let replyBubble = msg.nextElementSibling;
-                        if (replyBubble && replyBubble.classList && replyBubble.classList.contains('admin') && replyBubble.getAttribute('data-reply-for') === messageId) {
-                            replyBubble.querySelector('.bubble').innerHTML = (replyText || '').replace(/\n/g, '<br>');
-                        } else {
-                            // 添加新回复
-                            const replyDiv = document.createElement('div');
-                            replyDiv.className = 'message admin';
-                            replyDiv.setAttribute('data-reply-for', messageId);
-                            const bubbleDiv = document.createElement('div');
-                            bubbleDiv.className = 'bubble';
-                            bubbleDiv.innerHTML = (replyText || '').replace(/\n/g, '<br>');
-                            const timeDiv = document.createElement('div');
-                            timeDiv.className = 'message-time';
-                            timeDiv.innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            replyDiv.appendChild(bubbleDiv);
-                            replyDiv.appendChild(timeDiv);
-                            // 插入到消息后面
-                            if (msg.nextSibling) {
-                                messagesContainer.insertBefore(replyDiv, msg.nextSibling);
-                            } else {
-                                messagesContainer.appendChild(replyDiv);
-                            }
-                        }
-                        break;
-                    }
-                }
-                scrollToBottom();
-            }
-            
-            async function loadUserMessages() {
-                if (!currentUser.email) return;
-                const { data, error } = await supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .eq('email', currentUser.email)
-                    .order('created_at', { ascending: true });
-                
-                if (error) { console.error(error); return; }
-                
-                messagesContainer.innerHTML = '';
-                const welcomeDiv = document.createElement('div');
-                welcomeDiv.className = 'admin message';
-                welcomeDiv.innerHTML = '<div class="bubble">您好！我是客服助手，请问有什么可以帮助您的？</div><div class="message-time">' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</div>';
-                messagesContainer.appendChild(welcomeDiv);
-                
-                if (data && data.length) {
-                    for (let msg of data) {
-                        const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const userMsgDiv = document.createElement('div');
-                        userMsgDiv.className = 'message user';
-                        userMsgDiv.setAttribute('data-msg-id', msg.id);
-                        userMsgDiv.innerHTML = `<div class="bubble">${escapeHtml(msg.message)}</div><div class="message-time">${time}</div>`;
-                        messagesContainer.appendChild(userMsgDiv);
-                        
-                        if (msg.reply && msg.reply.trim()) {
-                            const replyDiv = document.createElement('div');
-                            replyDiv.className = 'message admin';
-                            replyDiv.setAttribute('data-reply-for', msg.id);
-                            replyDiv.innerHTML = `<div class="bubble">${escapeHtml(msg.reply)}</div><div class="message-time">${time}</div>`;
-                            messagesContainer.appendChild(replyDiv);
-                        }
-                    }
-                }
-                scrollToBottom();
-            }
-            
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                });
-            }
-            
-            async function sendMessage() {
-                const message = messageInput.value.trim();
-                if (!message) return;
-                sendBtn.disabled = true;
-                const tempTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                // 临时显示用户消息
-                const tempId = 'temp_' + Date.now();
-                const userMsgDiv = document.createElement('div');
-                userMsgDiv.className = 'message user';
-                userMsgDiv.setAttribute('data-msg-id', tempId);
-                userMsgDiv.innerHTML = `<div class="bubble">${escapeHtml(message)}</div><div class="message-time">${tempTime}</div>`;
-                messagesContainer.appendChild(userMsgDiv);
-                scrollToBottom();
-                
-                messageInput.value = '';
-                messageInput.focus();
-                
-                const { data, error } = await supabase
-                    .from(TABLE_NAME)
-                    .insert([{ name: currentUser.name, email: currentUser.email, message: message, reply: '', is_replied: false, created_at: new Date().toISOString() }])
-                    .select();
-                
-                if (error) { 
-                    console.error(error); 
-                    showToast('发送失败', true);
-                    userMsgDiv.remove();
+            function openChat() {
+                if (!currentUser.name) {
+                    userInfoModal.style.display = 'flex';
                 } else {
-                    showToast('已发送');
-                    // 更新临时消息的真实ID
-                    if (data && data[0]) {
-                        userMsgDiv.setAttribute('data-msg-id', data[0].id);
-                    }
+                    chatInterface.classList.add('open');
+                    messageInput.focus();
+                    loadUserMessages();
                 }
-                sendBtn.disabled = false;
-                scrollToBottom();
             }
             
-            // 设置实时订阅 - 监听 UPDATE 事件
-            function setupRealtimeSubscription() {
-                if (realtimeChannel) {
-                    supabase.removeChannel(realtimeChannel);
-                }
-                
-                realtimeChannel = supabase
-                    .channel('realtime-chat-' + currentUser.email)
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: TABLE_NAME,
-                            filter: `email=eq.${currentUser.email}`
-                        },
-                        (payload) => {
-                            console.log('收到实时更新:', payload);
-                            const oldReply = payload.old.reply;
-                            const newReply = payload.new.reply;
-                            const messageId = payload.new.id;
-                            
-                            // 如果从无回复变为有回复
-                            if ((!oldReply || oldReply === '') && newReply && newReply !== '') {
-                                showToast('收到客服回复');
-                                updateReplyForMessage(messageId, newReply);
-                            }
-                        }
-                    )
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: 'INSERT',
-                            schema: 'public',
-                            table: TABLE_NAME,
-                            filter: `email=eq.${currentUser.email}`
-                        },
-                        (payload) => {
-                            // 如果是其他设备发送的消息，重新加载
-                            console.log('收到新插入:', payload);
-                            loadUserMessages();
-                        }
-                    )
-                    .subscribe((status) => {
-                        console.log('实时订阅状态:', status);
-                    });
-            }
-            
+            openChatLanding.onclick = openChat;
+            floatingChatBtn.onclick = openChat;
+            closeChatInterface.onclick = () => chatInterface.classList.remove('open');
             sendBtn.onclick = sendMessage;
             messageInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
             
-            console.log('前端已启动，等待实时消息...');
+            console.log('前端已启动');
         })();
     </script>
 </body>
