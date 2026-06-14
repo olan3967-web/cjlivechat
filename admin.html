@@ -18,6 +18,7 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
+            position: relative;
         }
         .user-item:hover { background: #f9fafb; }
         .delete-btn { 
@@ -28,19 +29,68 @@
             border: none; 
             cursor: pointer; 
             font-size: 14px; 
+            padding: 4px 8px;
         }
         .user-item:hover .delete-btn { opacity: 1; }
-        .has-unread { background: #fef2f2; }
         
-        /* 闪烁动画 */
+        /* 持续闪烁动画 */
         @keyframes flashYellow {
+            0% { background-color: #ffffff; }
+            50% { background-color: #fef08a; }
+            100% { background-color: #ffffff; }
+        }
+        @keyframes flashYellowRepeat {
             0% { background-color: #ffffff; }
             30% { background-color: #fef08a; }
             60% { background-color: #fef08a; }
             100% { background-color: #ffffff; }
         }
-        .flash-item {
-            animation: flashYellow 1s ease-in-out;
+        .flashing {
+            animation: flashYellowRepeat 1.5s infinite ease-in-out;
+        }
+        
+        /* 未读徽章 */
+        .unread-badge {
+            background-color: #ef4444;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+            display: inline-block;
+            min-width: 24px;
+            text-align: center;
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        .user-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .user-email {
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .last-message {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+        .last-time {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 2px;
         }
         
         .chat-message { margin-bottom: 16px; display: flex; }
@@ -92,6 +142,11 @@
         .image-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; cursor: pointer; }
         .image-viewer.show { display: flex; }
         .image-viewer img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+        
+        .right-section {
+            text-align: right;
+            min-width: 80px;
+        }
     </style>
 </head>
 <body>
@@ -170,6 +225,11 @@
             let deleteTargetEmail = null;
             let pendingImageFile = null;
             
+            // 存储每个用户的未读回复数
+            let unreadRepliesCount = {};
+            // 存储闪烁的定时器
+            let flashingTimers = {};
+            
             function showToast(msg) {
                 const toast = document.getElementById('toastMsg');
                 toast.textContent = msg;
@@ -211,21 +271,70 @@
                 return data.publicUrl;
             }
             
-            // 闪烁效果
-            function flashElement(element) {
-                if (!element) return;
-                element.classList.remove('flash-item');
-                setTimeout(() => {
-                    element.classList.add('flash-item');
-                }, 10);
-                setTimeout(() => {
-                    element.classList.remove('flash-item');
-                }, 1000);
+            // 开始闪烁
+            function startFlashing(email) {
+                const emailId = email.replace(/[@.]/g, '-');
+                const userElement = document.getElementById(`user-${emailId}`);
+                if (userElement && !userElement.classList.contains('flashing')) {
+                    userElement.classList.add('flashing');
+                }
+            }
+            
+            // 停止闪烁
+            function stopFlashing(email) {
+                const emailId = email.replace(/[@.]/g, '-');
+                const userElement = document.getElementById(`user-${emailId}`);
+                if (userElement) {
+                    userElement.classList.remove('flashing');
+                }
+                if (flashingTimers[email]) {
+                    clearTimeout(flashingTimers[email]);
+                    delete flashingTimers[email];
+                }
+            }
+            
+            // 更新未读徽章
+            function updateUnreadBadge(email, count) {
+                const emailId = email.replace(/[@.]/g, '-');
+                const badgeSpan = document.getElementById(`badge-${emailId}`);
+                if (badgeSpan) {
+                    if (count > 0) {
+                        badgeSpan.textContent = count;
+                        badgeSpan.style.display = 'inline-block';
+                    } else {
+                        badgeSpan.style.display = 'none';
+                    }
+                }
+            }
+            
+            // 计算每个用户的未读回复数（待回复 = 没有回复的消息数）
+            async function calculateUnreadCounts() {
+                const { data: messages } = await supabase.from('livechat_messages').select('*').order('created_at', { ascending: true });
+                if (!messages) return {};
+                
+                const { data: replies } = await supabase.from('message_replies').select('*');
+                const repliedMsgIds = new Set();
+                if (replies) {
+                    for (let r of replies) {
+                        repliedMsgIds.add(r.message_id);
+                    }
+                }
+                
+                const unreadByEmail = {};
+                for (let msg of messages) {
+                    if (!repliedMsgIds.has(msg.id)) {
+                        unreadByEmail[msg.email] = (unreadByEmail[msg.email] || 0) + 1;
+                    }
+                }
+                return unreadByEmail;
             }
             
             async function loadUsers() {
                 const { data: messages } = await supabase.from('livechat_messages').select('*').order('created_at', { ascending: true });
                 if (!messages) return;
+                
+                const unreadByEmail = await calculateUnreadCounts();
+                unreadRepliesCount = unreadByEmail;
                 
                 const { data: replies } = await supabase.from('message_replies').select('*');
                 const replyCount = {};
@@ -242,10 +351,10 @@
                 }
                 
                 const totalMessages = messages.length;
-                const unreadCount = messages.filter(m => !replyCount[m.id]).length;
+                const totalUnread = Object.values(unreadByEmail).reduce((a, b) => a + b, 0);
                 document.getElementById('totalCount').innerText = totalMessages;
-                document.getElementById('unreadCount').innerText = unreadCount;
-                document.getElementById('repliedCount').innerText = totalMessages - unreadCount;
+                document.getElementById('unreadCount').innerText = totalUnread;
+                document.getElementById('repliedCount').innerText = totalMessages - totalUnread;
                 document.getElementById('userCount').innerText = Object.keys(users).length;
                 
                 const container = document.getElementById('userList');
@@ -258,22 +367,55 @@
                 for (let email in users) {
                     const u = users[email];
                     const lastMsg = u.messages[u.messages.length - 1];
-                    const hasUnread = !replyCount[lastMsg.id];
+                    const unreadCount = unreadByEmail[email] || 0;
+                    const isFlashing = unreadCount > 0 && currentUserEmail !== email;
+                    
                     html += `
-                        <div class="user-item ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}" id="user-${escapeHtml(email).replace(/[@.]/g, '-')}">
-                            <div class="flex-1" onclick="window.openUserChat('${escapeHtml(email)}')">
-                                <div><span class="font-semibold">${escapeHtml(u.name)}</span> <span class="text-gray-400 text-sm">${escapeHtml(email)}</span></div>
-                                <div class="text-sm text-gray-500 mt-1">${escapeHtml(lastMsg.message.substring(0, 50))}</div>
-                                <div class="text-xs text-gray-400 mt-1">${new Date(lastMsg.created_at).toLocaleString()}</div>
+                        <div class="user-item" id="user-${email.replace(/[@.]/g, '-')}" data-email="${escapeHtml(email)}">
+                            <div class="user-info" onclick="window.openUserChat('${escapeHtml(email)}')">
+                                <div class="user-name">
+                                    ${escapeHtml(u.name)}
+                                    <span class="user-email">${escapeHtml(email)}</span>
+                                </div>
+                                <div class="last-message">${escapeHtml(lastMsg.message.substring(0, 50))}</div>
+                                <div class="last-time">${new Date(lastMsg.created_at).toLocaleString()}</div>
                             </div>
-                            <button class="delete-btn" onclick="event.stopPropagation(); window.deleteUser('${escapeHtml(email)}')">删除</button>
+                            <div class="right-section">
+                                ${unreadCount > 0 ? `<span class="unread-badge" id="badge-${email.replace(/[@.]/g, '-')}">${unreadCount}</span>` : `<span class="unread-badge" id="badge-${email.replace(/[@.]/g, '-')}" style="display:none;">0</span>`}
+                                <button class="delete-btn" onclick="event.stopPropagation(); window.deleteUser('${escapeHtml(email)}')">删除</button>
+                            </div>
                         </div>
                     `;
                 }
                 container.innerHTML = html;
+                
+                // 对未读的用户开始闪烁
+                for (let email in users) {
+                    const unread = unreadByEmail[email] || 0;
+                    if (unread > 0 && currentUserEmail !== email) {
+                        startFlashing(email);
+                    } else {
+                        stopFlashing(email);
+                    }
+                }
+            }
+            
+            // 标记当前用户的所有消息为已读（当打开聊天时）
+            async function markAsRead(email) {
+                // 停止该用户的闪烁
+                stopFlashing(email);
+                // 更新未读数
+                const newUnread = await calculateUnreadCounts();
+                const count = newUnread[email] || 0;
+                updateUnreadBadge(email, count);
+                // 重新加载用户列表以更新徽章
+                loadUsers();
             }
             
             async function loadChatMessages(email) {
+                // 标记为已读
+                await markAsRead(email);
+                
                 const { data: messages } = await supabase.from('livechat_messages').select('*').eq('email', email).order('created_at', { ascending: true });
                 if (!messages || messages.length === 0) return;
                 
@@ -377,6 +519,7 @@
                 loadUsers();
                 if (currentUserEmail === deleteTargetEmail) {
                     document.getElementById('chatModal').classList.remove('show');
+                    currentUserEmail = null;
                 }
                 deleteTargetEmail = null;
             }
@@ -389,6 +532,8 @@
                 // 清除图片预览
                 document.getElementById('imagePreviewArea').style.display = 'none';
                 pendingImageFile = null;
+                // 停止闪烁
+                stopFlashing(email);
             };
             
             // 图片上传处理
@@ -424,29 +569,30 @@
             function setupRealtime() {
                 supabase
                     .channel('admin-changes')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, (payload) => {
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, async (payload) => {
                         console.log('实时: 消息变化', payload.eventType);
-                        loadUsers();
-                        if (currentUserEmail) loadChatMessages(currentUserEmail);
+                        await loadUsers();
+                        if (currentUserEmail) await loadChatMessages(currentUserEmail);
                         
-                        // 闪烁对应的用户条目
-                        if (payload.new && payload.new.email) {
-                            const emailId = payload.new.email.replace(/[@.]/g, '-');
-                            const userElement = document.getElementById(`user-${emailId}`);
-                            if (userElement) flashElement(userElement);
+                        // 新消息时，对相应用户开始闪烁
+                        if (payload.new && payload.new.email && currentUserEmail !== payload.new.email) {
+                            startFlashing(payload.new.email);
                         }
                     })
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, () => {
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, async () => {
                         console.log('实时: 回复变化');
-                        loadUsers();
-                        if (currentUserEmail) loadChatMessages(currentUserEmail);
+                        await loadUsers();
+                        if (currentUserEmail) await loadChatMessages(currentUserEmail);
                     })
                     .subscribe();
             }
             
             // 事件绑定
             document.getElementById('refreshBtn').onclick = loadUsers;
-            document.getElementById('closeChatBtn').onclick = () => document.getElementById('chatModal').classList.remove('show');
+            document.getElementById('closeChatBtn').onclick = () => {
+                document.getElementById('chatModal').classList.remove('show');
+                // 关闭时不清除 currentUserEmail，但停止闪烁会在下次打开时处理
+            };
             document.getElementById('sendBtn').onclick = sendReply;
             document.getElementById('cancelDeleteBtn').onclick = () => document.getElementById('deleteModal').classList.remove('show');
             document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
