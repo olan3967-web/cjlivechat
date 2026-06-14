@@ -107,6 +107,8 @@
         
         .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: #374151; }
         .required-star { color: #ef4444; }
+        .online-dot { display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-left: 8px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -118,6 +120,7 @@
                     <i class="fas fa-headset text-white text-sm"></i>
                 </div>
                 <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">CJ Support</span>
+                <span class="online-dot"></span>
             </div>
             <button id="openChatNav" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-full text-sm font-semibold hover:shadow-lg transition">
                 <i class="fas fa-comment-dots mr-1"></i> 联系客服
@@ -189,12 +192,10 @@
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
             
-            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            const TABLE_NAME = 'livechat_messages';
-            const REPLIES_TABLE = 'message_replies';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             
             let currentUser = { id: null, name: null, email: null, phone: null, address: null };
-            let realtimeChannel = null;
+            let currentChannel = null;
             
             const userInfoModal = document.getElementById('userInfoModal');
             const userInfoForm = document.getElementById('userInfoForm');
@@ -219,32 +220,43 @@
                 setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
             
-            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
             
-            function scrollToBottom() { setTimeout(() => { if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 100); }
+            function scrollToBottom() {
+                setTimeout(() => {
+                    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 100);
+            }
             
             function formatDateTime(dateStr) {
                 if (!dateStr) return '';
                 return new Date(dateStr).toLocaleString('zh-CN');
             }
             
-            async function loadMessagesAndReplies() {
-                if (!currentUser.email) return { messages: [], replies: [] };
-                const { data: messages } = await _supabase.from(TABLE_NAME).select('*').eq('email', currentUser.email).order('created_at', { ascending: true });
-                if (!messages || messages.length === 0) return { messages: [], replies: [] };
-                const messageIds = messages.map(m => m.id);
-                const { data: replies } = await _supabase.from(REPLIES_TABLE).select('*').in('message_id', messageIds).order('created_at', { ascending: true });
-                return { messages, replies: replies || [] };
-            }
-            
-            async function loadUserMessages() {
+            // 加载消息和回复
+            async function loadMessages() {
                 if (!currentUser.email) return;
-                const { messages, replies } = await loadMessagesAndReplies();
+                
+                const { data: messages } = await supabase.from('livechat_messages').select('*').eq('email', currentUser.email).order('created_at', { ascending: true });
+                if (!messages) return;
+                
+                const msgIds = messages.map(m => m.id);
+                const { data: replies } = await supabase.from('message_replies').select('*').in('message_id', msgIds).order('created_at', { ascending: true });
                 
                 const repliesByMsg = {};
-                for (let r of replies) {
-                    if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = [];
-                    repliesByMsg[r.message_id].push(r);
+                if (replies) {
+                    for (let r of replies) {
+                        if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = [];
+                        repliesByMsg[r.message_id].push(r);
+                    }
                 }
                 
                 messagesContainer.innerHTML = '';
@@ -279,9 +291,11 @@
                 scrollToBottom();
             }
             
+            // 发送消息
             async function sendMessage() {
                 const message = messageInput.value.trim();
                 if (!message) return;
+                
                 sendBtn.disabled = true;
                 const tempTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
@@ -292,9 +306,8 @@
                 messagesContainer.appendChild(tempDiv);
                 scrollToBottom();
                 messageInput.value = '';
-                messageInput.focus();
                 
-                const { error } = await _supabase.from(TABLE_NAME).insert([{
+                const { error } = await supabase.from('livechat_messages').insert([{
                     name: currentUser.name,
                     email: currentUser.email,
                     phone: currentUser.phone,
@@ -304,34 +317,45 @@
                 }]);
                 
                 if (error) {
-                    console.error(error);
                     showToast('发送失败', true);
                     tempDiv.remove();
                 } else {
                     showToast('已发送');
                 }
                 sendBtn.disabled = false;
-                setTimeout(() => loadUserMessages(), 500);
+                messageInput.focus();
             }
             
-            function setupRealtimeSubscription() {
-                if (realtimeChannel) _supabase.removeChannel(realtimeChannel);
-                realtimeChannel = _supabase.channel(`user-chat-${currentUser.email}`)
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: TABLE_NAME, filter: `email=eq.${currentUser.email}` }, () => {
-                        console.log('新消息');
-                        loadUserMessages();
+            // 设置实时订阅
+            function setupRealtime() {
+                if (currentChannel) {
+                    supabase.removeChannel(currentChannel);
+                }
+                
+                currentChannel = supabase.channel(`user-${currentUser.email}`)
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'livechat_messages', filter: `email=eq.${currentUser.email}` }, () => {
+                        console.log('实时: 新消息');
+                        loadMessages();
                     })
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: REPLIES_TABLE }, async () => {
-                        const { messages } = await loadMessagesAndReplies();
-                        if (messages.length > 0) {
-                            console.log('新回复');
-                            showToast('收到客服回复');
-                            loadUserMessages();
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_replies' }, async () => {
+                        // 检查回复是否属于当前用户
+                        const { data: msgs } = await supabase.from('livechat_messages').select('id').eq('email', currentUser.email);
+                        if (msgs && msgs.length > 0) {
+                            const msgIds = msgs.map(m => m.id);
+                            const { data: newReply } = await supabase.from('message_replies').select('message_id').order('created_at', { ascending: false }).limit(1);
+                            if (newReply && newReply[0] && msgIds.includes(newReply[0].message_id)) {
+                                console.log('实时: 新回复');
+                                showToast('收到客服回复');
+                                loadMessages();
+                            }
                         }
                     })
-                    .subscribe();
+                    .subscribe((status) => {
+                        console.log('订阅状态:', status);
+                    });
             }
             
+            // 检查本地存储
             const savedUser = localStorage.getItem('chat_user');
             if (savedUser) {
                 try {
@@ -339,12 +363,13 @@
                     if (user && user.email && user.name && user.phone) {
                         currentUser = user;
                         userInfoModal.classList.remove('show');
-                        loadUserMessages();
-                        setupRealtimeSubscription();
+                        loadMessages();
+                        setupRealtime();
                     }
                 } catch(e) {}
             }
             
+            // 提交用户信息
             userInfoForm.onsubmit = function(e) {
                 e.preventDefault();
                 const name = userNameInput.value.trim();
@@ -356,8 +381,8 @@
                 currentUser = { id: Date.now().toString(), name, email, phone, address: address || '' };
                 localStorage.setItem('chat_user', JSON.stringify(currentUser));
                 userInfoModal.classList.remove('show');
-                loadUserMessages();
-                setupRealtimeSubscription();
+                loadMessages();
+                setupRealtime();
                 chatInterface.classList.add('open');
                 messageInput.focus();
                 showToast('欢迎！开始聊天吧');
@@ -369,7 +394,7 @@
                 } else {
                     chatInterface.classList.add('open');
                     messageInput.focus();
-                    loadUserMessages();
+                    loadMessages();
                 }
             }
             
