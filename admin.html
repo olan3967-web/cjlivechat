@@ -10,13 +10,40 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: system-ui, sans-serif; background: #f3f4f6; }
         
-        .user-item { cursor: pointer; border-bottom: 1px solid #e5e7eb; padding: 16px; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .user-item { 
+            cursor: pointer; 
+            border-bottom: 1px solid #e5e7eb; 
+            padding: 16px; 
+            transition: background 0.2s; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
         .user-item:hover { background: #f9fafb; }
-        .delete-btn { opacity: 0; transition: opacity 0.2s; color: #ef4444; background: none; border: none; cursor: pointer; font-size: 14px; }
+        .delete-btn { 
+            opacity: 0; 
+            transition: opacity 0.2s; 
+            color: #ef4444; 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
         .user-item:hover .delete-btn { opacity: 1; }
         .has-unread { background: #fef2f2; }
         
-        .chat-message { margin-bottom: 20px; display: flex; }
+        /* 闪烁动画 */
+        @keyframes flashYellow {
+            0% { background-color: #ffffff; }
+            30% { background-color: #fef08a; }
+            60% { background-color: #fef08a; }
+            100% { background-color: #ffffff; }
+        }
+        .flash-item {
+            animation: flashYellow 1s ease-in-out;
+        }
+        
+        .chat-message { margin-bottom: 16px; display: flex; }
         .chat-message.user { justify-content: flex-start; }
         .chat-message.admin { justify-content: flex-end; }
         .bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 13px; }
@@ -29,16 +56,28 @@
         .reply-bubble { background: #2563eb; color: white; padding: 8px 12px; border-radius: 18px; font-size: 12px; max-width: 80%; }
         .reply-time { font-size: 9px; opacity: 0.7; margin-top: 2px; text-align: right; }
         
+        .chat-image { max-width: 150px; max-height: 150px; border-radius: 12px; margin-top: 4px; cursor: pointer; }
+        .reply-image { max-width: 100px; max-height: 100px; border-radius: 8px; margin-top: 4px; cursor: pointer; }
+        
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .modal.show { display: flex; }
-        .modal-content { background: white; border-radius: 24px; width: 500px; max-width: 90%; height: 70vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-content { background: white; border-radius: 24px; width: 550px; max-width: 90%; height: 75vh; display: flex; flex-direction: column; overflow: hidden; }
         .modal-header { background: #4f46e5; color: white; padding: 16px 20px; display: flex; justify-content: space-between; }
         .modal-body { flex: 1; overflow-y: auto; padding: 16px; background: #f8fafc; }
-        .modal-footer { padding: 12px 16px; background: white; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; }
-        .modal-footer input { flex: 1; padding: 10px 16px; border: 1px solid #e5e7eb; border-radius: 24px; outline: none; }
-        .modal-footer button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 24px; cursor: pointer; }
-        .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .modal-footer { padding: 12px 16px; background: white; border-top: 1px solid #e5e7eb; }
         
+        .input-container { display: flex; gap: 8px; align-items: center; background: #f5f7fa; border-radius: 28px; padding: 6px 8px 6px 18px; border: 1px solid #e5e7eb; }
+        .input-container input { flex: 1; background: transparent; border: none; outline: none; padding: 8px 0; font-size: 14px; }
+        .attach-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #9ca3af; padding: 6px; border-radius: 50%; }
+        .attach-btn:hover { background: #e5e7eb; color: #4f46e5; }
+        .send-btn { background: #4f46e5; color: white; border: none; padding: 8px 20px; border-radius: 28px; cursor: pointer; }
+        .send-btn:hover { background: #4338ca; }
+        
+        .image-preview { position: relative; display: inline-block; margin-top: 8px; }
+        .image-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+        .remove-img { position: absolute; top: -8px; right: -8px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
+        
+        .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; opacity: 0; transition: opacity 0.2s; z-index: 1001; }
         .delete-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1002; }
         .delete-modal.show { display: flex; }
@@ -49,16 +88,18 @@
         
         .stat-card { background: white; border-radius: 12px; padding: 16px; }
         .stat-number { font-size: 28px; font-weight: bold; }
-        .online-dot { display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-left: 8px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+        
+        .image-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; cursor: pointer; }
+        .image-viewer.show { display: flex; }
+        .image-viewer img { max-width: 90%; max-height: 90%; border-radius: 8px; }
     </style>
 </head>
 <body>
 
     <div class="bg-indigo-800 text-white px-6 py-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <div><span class="font-bold text-xl">CJ 客服后台</span><span class="online-dot"></span></div>
-            <span class="text-sm">实时模式 · 直接输入 Enter 发送</span>
+        <div class="container mx-auto flex justify-between">
+            <span class="font-bold text-xl">CJ 客服后台</span>
+            <span class="text-sm">直接输入回复 → Enter 发送 | 支持图片</span>
         </div>
     </div>
 
@@ -72,8 +113,8 @@
 
         <div class="bg-white rounded-lg overflow-hidden shadow">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <h2 class="font-bold">用户列表 <span class="text-xs text-green-600 ml-2">● 实时更新</span></h2>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm">手动刷新</button>
+                <h2 class="font-bold">用户列表</h2>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm">刷新</button>
             </div>
             <div id="userList"></div>
         </div>
@@ -88,8 +129,15 @@
             </div>
             <div class="modal-body" id="chatMessages"></div>
             <div class="modal-footer">
-                <input type="text" id="msgInput" placeholder="输入回复... 按 Enter 发送" autocomplete="off">
-                <button id="sendBtn">发送</button>
+                <div class="input-container">
+                    <input type="text" id="msgInput" placeholder="输入回复... 按 Enter 发送" autocomplete="off">
+                    <button class="attach-btn" id="attachBtn"><i class="fas fa-image"></i></button>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                </div>
+                <button class="send-btn" id="sendBtn">发送</button>
+            </div>
+            <div id="imagePreviewArea" style="padding: 0 16px 12px 16px; display: none;">
+                <div class="image-preview"><img id="previewImg"><span class="remove-img" id="removeImgBtn">×</span></div>
             </div>
         </div>
     </div>
@@ -103,8 +151,14 @@
         </div>
     </div>
 
+    <!-- 图片查看器 -->
+    <div id="imageViewer" class="image-viewer" onclick="closeImageViewer()">
+        <img id="viewerImg" src="">
+    </div>
+
     <div id="toastMsg" class="toast"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
     <script>
         (function() {
             const SB_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
@@ -114,7 +168,7 @@
             
             let currentUserEmail = null;
             let deleteTargetEmail = null;
-            let currentChannel = null;
+            let pendingImageFile = null;
             
             function showToast(msg) {
                 const toast = document.getElementById('toastMsg');
@@ -137,7 +191,38 @@
                 return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
             
-            // 加载用户列表
+            function showImage(url) {
+                document.getElementById('viewerImg').src = url;
+                document.getElementById('imageViewer').classList.add('show');
+            }
+            
+            window.closeImageViewer = function() {
+                document.getElementById('imageViewer').classList.remove('show');
+            };
+            
+            async function uploadImage(file) {
+                const fileName = `reply_${Date.now()}_${file.name}`;
+                const { error } = await supabase.storage.from('chat_images').upload(fileName, file);
+                if (error) {
+                    console.error('上传失败:', error);
+                    return null;
+                }
+                const { data } = supabase.storage.from('chat_images').getPublicUrl(fileName);
+                return data.publicUrl;
+            }
+            
+            // 闪烁效果
+            function flashElement(element) {
+                if (!element) return;
+                element.classList.remove('flash-item');
+                setTimeout(() => {
+                    element.classList.add('flash-item');
+                }, 10);
+                setTimeout(() => {
+                    element.classList.remove('flash-item');
+                }, 1000);
+            }
+            
             async function loadUsers() {
                 const { data: messages } = await supabase.from('livechat_messages').select('*').order('created_at', { ascending: true });
                 if (!messages) return;
@@ -148,7 +233,6 @@
                     for (let r of replies) replyCount[r.message_id] = (replyCount[r.message_id] || 0) + 1;
                 }
                 
-                // 按用户分组
                 const users = {};
                 for (let msg of messages) {
                     if (!users[msg.email]) {
@@ -157,7 +241,6 @@
                     users[msg.email].messages.push(msg);
                 }
                 
-                // 更新统计
                 const totalMessages = messages.length;
                 const unreadCount = messages.filter(m => !replyCount[m.id]).length;
                 document.getElementById('totalCount').innerText = totalMessages;
@@ -165,7 +248,6 @@
                 document.getElementById('repliedCount').innerText = totalMessages - unreadCount;
                 document.getElementById('userCount').innerText = Object.keys(users).length;
                 
-                // 渲染用户列表
                 const container = document.getElementById('userList');
                 if (Object.keys(users).length === 0) {
                     container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无用户</div>';
@@ -178,7 +260,7 @@
                     const lastMsg = u.messages[u.messages.length - 1];
                     const hasUnread = !replyCount[lastMsg.id];
                     html += `
-                        <div class="user-item ${hasUnread ? 'has-unread' : ''}">
+                        <div class="user-item ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}" id="user-${escapeHtml(email).replace(/[@.]/g, '-')}">
                             <div class="flex-1" onclick="window.openUserChat('${escapeHtml(email)}')">
                                 <div><span class="font-semibold">${escapeHtml(u.name)}</span> <span class="text-gray-400 text-sm">${escapeHtml(email)}</span></div>
                                 <div class="text-sm text-gray-500 mt-1">${escapeHtml(lastMsg.message.substring(0, 50))}</div>
@@ -191,7 +273,6 @@
                 container.innerHTML = html;
             }
             
-            // 加载聊天消息
             async function loadChatMessages(email) {
                 const { data: messages } = await supabase.from('livechat_messages').select('*').eq('email', email).order('created_at', { ascending: true });
                 if (!messages || messages.length === 0) return;
@@ -217,6 +298,7 @@
                         <div class="chat-message user">
                             <div class="bubble user">
                                 <div>${escapeHtml(msg.message)}</div>
+                                ${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImage('${escapeHtml(msg.image_url)}')">` : ''}
                                 <div class="msg-time">${formatTime(msg.created_at)}</div>
                             </div>
                         </div>
@@ -229,6 +311,7 @@
                                 <div class="reply-item">
                                     <div class="reply-bubble">
                                         <div>${escapeHtml(r.reply)}</div>
+                                        ${r.reply_image_url ? `<img src="${escapeHtml(r.reply_image_url)}" class="reply-image" onclick="showImage('${escapeHtml(r.reply_image_url)}')">` : ''}
                                         <div class="reply-time">${new Date(r.created_at).toLocaleString()}</div>
                                     </div>
                                 </div>
@@ -242,19 +325,25 @@
                 msgArea.scrollTop = msgArea.scrollHeight;
             }
             
-            // 发送回复
             async function sendReply() {
                 const msg = document.getElementById('msgInput').value.trim();
-                if (!msg) return;
+                if (!msg && !pendingImageFile) { showToast('请输入回复内容或选择图片'); return; }
                 if (!currentUserEmail) { showToast('请先选择用户'); return; }
                 
                 const { data: msgs } = await supabase.from('livechat_messages').select('id').eq('email', currentUserEmail).order('created_at', { ascending: false }).limit(1);
                 if (!msgs || msgs.length === 0) { showToast('没有可回复的消息'); return; }
                 
+                let imageUrl = null;
+                if (pendingImageFile) {
+                    imageUrl = await uploadImage(pendingImageFile);
+                    if (!imageUrl) { showToast('图片上传失败', true); return; }
+                }
+                
                 const lastMsgId = msgs[0].id;
                 const { error } = await supabase.from('message_replies').insert([{
                     message_id: lastMsgId,
-                    reply: msg,
+                    reply: msg || '',
+                    reply_image_url: imageUrl,
                     created_at: new Date().toISOString()
                 }]);
                 
@@ -262,12 +351,14 @@
                     showToast('发送失败: ' + error.message);
                 } else {
                     document.getElementById('msgInput').value = '';
+                    document.getElementById('imagePreviewArea').style.display = 'none';
+                    pendingImageFile = null;
                     showToast('已发送');
                     await loadChatMessages(currentUserEmail);
+                    await loadUsers();
                 }
             }
             
-            // 删除用户
             window.deleteUser = function(email) {
                 deleteTargetEmail = email;
                 document.getElementById('deleteModal').classList.add('show');
@@ -290,36 +381,67 @@
                 deleteTargetEmail = null;
             }
             
-            // 打开用户聊天
             window.openUserChat = async function(email) {
                 currentUserEmail = email;
                 await loadChatMessages(email);
                 document.getElementById('chatModal').classList.add('show');
                 document.getElementById('msgInput').focus();
+                // 清除图片预览
+                document.getElementById('imagePreviewArea').style.display = 'none';
+                pendingImageFile = null;
             };
             
-            // 设置实时订阅
-            function setupRealtime() {
-                if (currentChannel) {
-                    supabase.removeChannel(currentChannel);
-                }
+            // 图片上传处理
+            function setupImageUpload() {
+                const attachBtn = document.getElementById('attachBtn');
+                const imageInput = document.getElementById('imageInput');
+                const previewArea = document.getElementById('imagePreviewArea');
+                const previewImg = document.getElementById('previewImg');
+                const removeBtn = document.getElementById('removeImgBtn');
                 
-                currentChannel = supabase.channel('admin-realtime')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, () => {
-                        console.log('实时: 消息变化');
+                attachBtn.onclick = () => imageInput.click();
+                
+                imageInput.onchange = (e) => {
+                    if (e.target.files && e.target.files[0]) {
+                        pendingImageFile = e.target.files[0];
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            previewImg.src = ev.target.result;
+                            previewArea.style.display = 'block';
+                        };
+                        reader.readAsDataURL(pendingImageFile);
+                    }
+                };
+                
+                removeBtn.onclick = () => {
+                    pendingImageFile = null;
+                    previewArea.style.display = 'none';
+                    imageInput.value = '';
+                };
+            }
+            
+            // 实时订阅 + 闪烁效果
+            function setupRealtime() {
+                supabase
+                    .channel('admin-changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, (payload) => {
+                        console.log('实时: 消息变化', payload.eventType);
                         loadUsers();
                         if (currentUserEmail) loadChatMessages(currentUserEmail);
+                        
+                        // 闪烁对应的用户条目
+                        if (payload.new && payload.new.email) {
+                            const emailId = payload.new.email.replace(/[@.]/g, '-');
+                            const userElement = document.getElementById(`user-${emailId}`);
+                            if (userElement) flashElement(userElement);
+                        }
                     })
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, () => {
                         console.log('实时: 回复变化');
                         loadUsers();
-                        if (currentUserEmail) {
-                            loadChatMessages(currentUserEmail);
-                        }
+                        if (currentUserEmail) loadChatMessages(currentUserEmail);
                     })
-                    .subscribe((status) => {
-                        console.log('订阅状态:', status);
-                    });
+                    .subscribe();
             }
             
             // 事件绑定
@@ -336,7 +458,7 @@
                 };
             }
             
-            // 启动
+            setupImageUpload();
             loadUsers();
             setupRealtime();
         })();
