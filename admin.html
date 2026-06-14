@@ -3,78 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>客服后台管理系统</title>
+    <title>客服后台管理系统 | 实时对话</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .message-preview {
-            max-width: 300px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .chat-bubble {
-            background: #e0e7ff;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 13px;
-        }
-        .reply-bubble {
-            background: #d1fae5;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 13px;
-        }
+        .conversation-item { transition: background 0.2s; cursor: pointer; }
+        .conversation-item:hover { background: #f3f4f6; }
+        .delete-btn { opacity: 0; transition: opacity 0.2s; }
+        .conversation-item:hover .delete-btn { opacity: 1; }
+        .message-bubble { background: #e0e7ff; padding: 6px 12px; border-radius: 12px; display: inline-block; max-width: 100%; }
+        .reply-bubble { background: #d1fae5; padding: 6px 12px; border-radius: 12px; display: inline-block; max-width: 100%; margin-top: 4px; }
+        .toast-msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; z-index: 10002; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <nav class="bg-indigo-800 text-white px-6 py-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-tachometer-alt text-xl"></i>
-                <span class="font-bold text-xl">客服后台管理系统</span>
-            </div>
+            <div class="flex items-center gap-2"><i class="fas fa-tachometer-alt text-xl"></i><span class="font-bold text-xl">客服后台管理系统</span></div>
             <div class="text-sm"><i class="fas fa-user-shield mr-1"></i>管理员</div>
         </div>
     </nav>
 
     <div class="container mx-auto px-4 py-6">
         <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center"><i class="fas fa-envelope text-3xl text-indigo-500 mr-3"></i><div><p class="text-gray-500 text-sm">总消息数</p><p id="totalCount" class="text-2xl font-bold">0</p></div></div>
-            </div>
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center"><i class="fas fa-clock text-3xl text-yellow-500 mr-3"></i><div><p class="text-gray-500 text-sm">待回复</p><p id="unreadCount" class="text-2xl font-bold text-red-600">0</p></div></div>
-            </div>
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center"><i class="fas fa-users text-3xl text-green-500 mr-3"></i><div><p class="text-gray-500 text-sm">用户数</p><p id="userCount" class="text-2xl font-bold">0</p></div></div>
-            </div>
+            <div class="bg-white rounded-lg shadow p-4"><div class="flex items-center"><i class="fas fa-envelope text-3xl text-indigo-500 mr-3"></i><div><p class="text-gray-500 text-sm">总消息数</p><p id="totalCount" class="text-2xl font-bold">0</p></div></div></div>
+            <div class="bg-white rounded-lg shadow p-4"><div class="flex items-center"><i class="fas fa-clock text-3xl text-yellow-500 mr-3"></i><div><p class="text-gray-500 text-sm">待回复</p><p id="unreadCount" class="text-2xl font-bold text-red-600">0</p></div></div></div>
+            <div class="bg-white rounded-lg shadow p-4"><div class="flex items-center"><i class="fas fa-users text-3xl text-green-500 mr-3"></i><div><p class="text-gray-500 text-sm">用户数</p><p id="userCount" class="text-2xl font-bold">0</p></div></div></div>
         </div>
 
         <div class="bg-white rounded-lg shadow overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
                 <h2 class="font-bold text-lg"><i class="fas fa-list mr-2"></i>对话列表（按用户分组）</h2>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600">
-                    <i class="fas fa-sync-alt mr-1"></i>刷新
-                </button>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600"><i class="fas fa-sync-alt mr-1"></i>刷新</button>
             </div>
-            <div id="conversationsContainer" class="divide-y">
-                <div class="text-center py-8 text-gray-400">加载中...</div>
-            </div>
+            <div id="conversationsContainer" class="divide-y"><div class="text-center py-8 text-gray-400">加载中...</div></div>
         </div>
     </div>
 
-    <!-- 回复弹窗 -->
     <div id="replyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-xl w-[500px] max-w-[90%] p-5 max-h-[80vh] overflow-auto">
-            <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
-                <i class="fas fa-reply text-indigo-500"></i>回复用户
-            </h3>
-            <div id="conversationPreview" class="bg-gray-50 rounded-lg p-3 mb-3 max-h-60 overflow-auto">
-                <!-- 对话预览 -->
-            </div>
+            <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fas fa-reply text-indigo-500"></i>回复用户</h3>
+            <div id="conversationPreview" class="bg-gray-50 rounded-lg p-3 mb-3 max-h-60 overflow-auto"></div>
             <textarea id="replyContent" rows="4" class="w-full border rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="输入回复内容..."></textarea>
             <div class="flex justify-end gap-2">
                 <button id="closeModalBtn" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
@@ -82,90 +53,76 @@
             </div>
         </div>
     </div>
+    
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl w-96 p-5">
+            <h3 class="font-bold text-lg mb-2">确认删除</h3>
+            <p class="text-gray-600 mb-4">确定要删除该用户的所有对话记录吗？此操作不可恢复。</p>
+            <div class="flex justify-end gap-2">
+                <button id="cancelDeleteBtn" class="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">确认删除</button>
+            </div>
+        </div>
+    </div>
+    <div id="toastMsg" class="toast-msg"></div>
 
     <script>
         (function() {
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
-            
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
-            
             let currentConversation = null;
             let currentUserEmail = null;
-
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                });
+            let pendingDeleteEmail = null;
+            const toastEl = document.getElementById('toastMsg');
+            
+            function showToast(msg, isError = false) {
+                toastEl.textContent = msg;
+                toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.7)';
+                toastEl.style.opacity = '1';
+                setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
-
-            async function loadConversations() {
-                const { data, error } = await supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .order('created_at', { ascending: true });
-                
-                if (error) {
-                    console.error('加载失败:', error);
-                    return [];
-                }
+            
+            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+            
+            async function loadMessages() {
+                const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: true });
+                if (error) return [];
                 return data || [];
             }
-
+            
             async function renderConversations() {
-                const messages = await loadConversations();
-                const container = document.getElementById('conversationsContainer');
-                
-                // 按邮箱分组
+                const messages = await loadMessages();
                 const groups = {};
                 for (let msg of messages) {
-                    if (!groups[msg.email]) {
-                        groups[msg.email] = {
-                            name: msg.name,
-                            email: msg.email,
-                            messages: []
-                        };
-                    }
+                    if (!groups[msg.email]) groups[msg.email] = { name: msg.name, email: msg.email, messages: [] };
                     groups[msg.email].messages.push(msg);
                 }
-                
                 const totalUsers = Object.keys(groups).length;
                 document.getElementById('userCount').innerText = totalUsers;
-                
                 let totalMessages = messages.length;
                 let unreadCount = messages.filter(m => !m.reply || m.reply === '').length;
                 document.getElementById('totalCount').innerText = totalMessages;
                 document.getElementById('unreadCount').innerText = unreadCount;
-                
-                if (Object.keys(groups).length === 0) {
-                    container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无对话</div>';
-                    return;
-                }
-                
+                const container = document.getElementById('conversationsContainer');
+                if (Object.keys(groups).length === 0) { container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无对话</div>'; return; }
                 let html = '';
                 for (let email in groups) {
                     const group = groups[email];
                     const lastMsg = group.messages[group.messages.length - 1];
                     const hasUnread = group.messages.some(m => !m.reply || m.reply === '');
                     const lastTime = new Date(lastMsg.created_at).toLocaleString('zh-CN');
-                    
                     html += `
-                        <div class="p-4 hover:bg-gray-50 cursor-pointer transition" onclick="openConversation('${escapeHtml(email)}')">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <div class="font-semibold">${escapeHtml(group.name)}</div>
-                                    <div class="text-sm text-gray-500">${escapeHtml(email)}</div>
-                                    <div class="text-sm text-gray-400 mt-1 message-preview">${escapeHtml(lastMsg.message.substring(0, 60))}</div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-xs text-gray-400">${lastTime}</div>
-                                    ${hasUnread ? '<div class="mt-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">待回复</div>' : '<div class="mt-1 text-green-500 text-xs">已回复</div>'}
-                                </div>
+                        <div class="conversation-item p-4 flex justify-between items-center" data-email="${escapeHtml(email)}">
+                            <div class="flex-1 cursor-pointer" onclick="openConversation('${escapeHtml(email)}')">
+                                <div class="font-semibold">${escapeHtml(group.name)}</div>
+                                <div class="text-sm text-gray-500">${escapeHtml(email)}</div>
+                                <div class="text-sm text-gray-400 mt-1 truncate max-w-md">${escapeHtml(lastMsg.message.substring(0, 60))}</div>
+                            </div>
+                            <div class="text-right flex items-center gap-3">
+                                <div><div class="text-xs text-gray-400">${lastTime}</div>${hasUnread ? '<div class="mt-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">待回复</div>' : '<div class="mt-1 text-green-500 text-xs">已回复</div>'}</div>
+                                <button class="delete-btn text-red-500 hover:text-red-700 p-2" onclick="event.stopPropagation(); confirmDeleteUser('${escapeHtml(email)}')"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>
                     `;
@@ -175,30 +132,18 @@
             
             window.openConversation = async function(email) {
                 currentUserEmail = email;
-                
-                const { data } = await supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .eq('email', email)
-                    .order('created_at', { ascending: true });
-                
+                const { data } = await supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
                 if (data && data.length > 0) {
                     currentConversation = data;
                     const userName = data[0].name;
-                    
-                    // 构建对话预览
                     let previewHtml = `<div class="font-semibold mb-2">与 ${escapeHtml(userName)} 的对话</div>`;
                     for (let msg of data) {
                         const time = new Date(msg.created_at).toLocaleTimeString();
-                        previewHtml += `
-                            <div class="mb-2">
-                                <div class="text-xs text-gray-400">${time}</div>
-                                <div class="chat-bubble inline-block max-w-full">${escapeHtml(msg.message)}</div>
-                                ${msg.reply ? `<div class="reply-bubble inline-block max-w-full mt-1">${escapeHtml(msg.reply)}</div>` : '<div class="text-xs text-gray-400 mt-1">⏳ 等待回复...</div>'}
-                            </div>
-                        `;
+                        previewHtml += `<div class="mb-3"><div class="text-xs text-gray-400">${time}</div><div class="message-bubble">${escapeHtml(msg.message)}</div>`;
+                        if (msg.reply && msg.reply.trim()) previewHtml += `<div class="reply-bubble mt-1">${escapeHtml(msg.reply)}</div>`;
+                        else previewHtml += `<div class="text-xs text-gray-400 mt-1">⏳ 等待回复...</div>`;
+                        previewHtml += `</div>`;
                     }
-                    
                     document.getElementById('conversationPreview').innerHTML = previewHtml;
                     document.getElementById('replyContent').value = '';
                     document.getElementById('replyModal').classList.remove('hidden');
@@ -206,33 +151,32 @@
                 }
             };
             
+            window.confirmDeleteUser = function(email) {
+                pendingDeleteEmail = email;
+                document.getElementById('deleteConfirmModal').classList.remove('hidden');
+                document.getElementById('deleteConfirmModal').classList.add('flex');
+            };
+            
+            async function deleteUserConversations() {
+                if (!pendingDeleteEmail) return;
+                const { error } = await supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail);
+                if (error) { showToast('删除失败: ' + error.message, true); }
+                else { showToast('已删除该用户所有对话'); renderConversations(); }
+                document.getElementById('deleteConfirmModal').classList.add('hidden');
+                document.getElementById('deleteConfirmModal').classList.remove('flex');
+                pendingDeleteEmail = null;
+            }
+            
             async function submitReply() {
                 const reply = document.getElementById('replyContent').value.trim();
-                if (!reply) {
-                    alert('请输入回复内容');
-                    return;
-                }
-                
-                // 找到未回复的消息
+                if (!reply) { showToast('请输入回复内容', true); return; }
                 const unreadMessages = currentConversation.filter(m => !m.reply || m.reply === '');
-                
-                if (unreadMessages.length === 0) {
-                    alert('所有消息都已回复');
-                    return;
-                }
-                
-                // 回复最新的一条未回复消息
+                if (unreadMessages.length === 0) { showToast('所有消息都已回复', true); return; }
                 const targetMsg = unreadMessages[unreadMessages.length - 1];
-                
-                const { error } = await supabase
-                    .from(TABLE_NAME)
-                    .update({ reply: reply, is_replied: true })
-                    .eq('id', targetMsg.id);
-                
-                if (error) {
-                    alert('回复失败：' + error.message);
-                } else {
-                    alert('回复成功！');
+                const { error } = await supabase.from(TABLE_NAME).update({ reply: reply, is_replied: true }).eq('id', targetMsg.id);
+                if (error) { showToast('回复失败: ' + error.message, true); }
+                else {
+                    showToast('回复成功');
                     document.getElementById('replyModal').classList.add('hidden');
                     document.getElementById('replyModal').classList.remove('flex');
                     renderConversations();
@@ -240,19 +184,15 @@
             }
             
             document.getElementById('refreshBtn').onclick = renderConversations;
-            document.getElementById('closeModalBtn').onclick = function() {
-                document.getElementById('replyModal').classList.add('hidden');
-                document.getElementById('replyModal').classList.remove('flex');
-            };
+            document.getElementById('closeModalBtn').onclick = () => { document.getElementById('replyModal').classList.add('hidden'); document.getElementById('replyModal').classList.remove('flex'); };
             document.getElementById('submitReplyBtn').onclick = submitReply;
+            document.getElementById('cancelDeleteBtn').onclick = () => { document.getElementById('deleteConfirmModal').classList.add('hidden'); document.getElementById('deleteConfirmModal').classList.remove('flex'); pendingDeleteEmail = null; };
+            document.getElementById('confirmDeleteBtn').onclick = deleteUserConversations;
             
             renderConversations();
             
-            // 实时监听
-            supabase.channel('public-livechat_messages')
-                .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, function() {
-                    renderConversations();
-                })
+            const channel = supabase.channel('public-admin-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => { renderConversations(); })
                 .subscribe();
         })();
     </script>
