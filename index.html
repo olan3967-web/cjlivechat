@@ -8,21 +8,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 聊天弹窗样式 */
         .chat-modal {
             position: fixed;
             bottom: 90px;
             right: 20px;
-            width: 380px;
+            width: 400px;
             max-width: calc(100vw - 40px);
             background: white;
             border-radius: 16px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
             z-index: 9999;
             display: none;
+            max-height: 600px;
+            overflow: hidden;
         }
         .chat-modal.show {
-            display: block;
+            display: flex;
+            flex-direction: column;
         }
         .chat-btn {
             position: fixed;
@@ -43,47 +45,51 @@
         }
         .chat-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
         }
-        /* 滚动条样式 */
-        .message-area::-webkit-scrollbar {
-            width: 4px;
+        .messages-area {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .user-message {
+            background: #e0e7ff;
+            margin-left: auto;
+            margin-right: 0;
+        }
+        .reply-message {
+            background: #d1fae5;
+            margin-right: auto;
+            margin-left: 0;
+        }
+        .message-bubble {
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            max-width: 85%;
+            word-wrap: break-word;
         }
     </style>
 </head>
 <body class="bg-gray-50">
 
-    <!-- 落地页内容 -->
     <div class="min-h-screen">
-        <!-- Hero 区域 -->
         <section class="bg-gradient-to-r from-indigo-900 via-purple-800 to-indigo-900 text-white py-20 px-4">
             <div class="container mx-auto max-w-5xl text-center">
                 <h1 class="text-4xl md:text-6xl font-bold mb-4">智能客服，实时响应</h1>
-                <p class="text-lg md:text-xl text-gray-200 mb-8">有问题随时问，专业客服团队第一时间回复您</p>
+                <p class="text-lg md:text-xl text-gray-200 mb-8">有问题随时问，客服会第一时间回复您</p>
                 <button id="openChatHero" class="bg-white text-indigo-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg">
                     <i class="fas fa-comment-dots mr-2"></i>联系客服
                 </button>
             </div>
         </section>
 
-        <!-- 功能特点 -->
         <section class="py-16 px-4 max-w-6xl mx-auto">
             <div class="grid md:grid-cols-3 gap-8 text-center">
-                <div class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
-                    <i class="fas fa-bolt text-4xl text-indigo-500 mb-3"></i>
-                    <h3 class="text-xl font-bold mb-2">极速响应</h3>
-                    <p class="text-gray-500">提交后客服立即收到通知，快速回复</p>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
-                    <i class="fas fa-headset text-4xl text-indigo-500 mb-3"></i>
-                    <h3 class="text-xl font-bold mb-2">专业客服</h3>
-                    <p class="text-gray-500">经验丰富的团队，解决您的疑问</p>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
-                    <i class="fas fa-database text-4xl text-indigo-500 mb-3"></i>
-                    <h3 class="text-xl font-bold mb-2">数据安全</h3>
-                    <p class="text-gray-500">所有对话记录加密保存，可追溯</p>
-                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md"><i class="fas fa-bolt text-4xl text-indigo-500 mb-3"></i><h3 class="text-xl font-bold">极速响应</h3><p class="text-gray-500">客服会尽快回复</p></div>
+                <div class="bg-white p-6 rounded-2xl shadow-md"><i class="fas fa-headset text-4xl text-indigo-500 mb-3"></i><h3 class="text-xl font-bold">专业客服</h3><p class="text-gray-500">经验丰富的团队</p></div>
+                <div class="bg-white p-6 rounded-2xl shadow-md"><i class="fas fa-database text-4xl text-indigo-500 mb-3"></i><h3 class="text-xl font-bold">消息可追溯</h3><p class="text-gray-500">输入邮箱可查看回复</p></div>
             </div>
         </section>
 
@@ -92,7 +98,6 @@
         </footer>
     </div>
 
-    <!-- 悬浮聊天按钮 -->
     <div class="chat-btn" id="chatBtn">
         <i class="fas fa-comment-dots text-2xl"></i>
     </div>
@@ -103,73 +108,101 @@
             <span class="font-semibold"><i class="fas fa-headset mr-2"></i>在线客服</span>
             <button id="closeModal" class="text-white text-2xl hover:text-gray-200">&times;</button>
         </div>
-        <div class="p-5">
-            <div class="bg-blue-50 p-3 rounded-lg text-sm mb-4 border border-blue-100">
-                <i class="fas fa-info-circle text-indigo-500 mr-1"></i> 请填写信息，客服会尽快回复您
+        
+        <div class="p-4 flex-1 overflow-auto">
+            <!-- 标签页切换 -->
+            <div class="flex border-b mb-3">
+                <button id="tabNew" class="flex-1 py-2 text-indigo-600 border-b-2 border-indigo-600 font-medium">📝 新消息</button>
+                <button id="tabQuery" class="flex-1 py-2 text-gray-500 hover:text-gray-700">🔍 查询回复</button>
             </div>
-            <form id="msgForm">
-                <input type="text" id="userName" placeholder="您的姓名 *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="email" id="userEmail" placeholder="电子邮箱 *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <textarea id="userMsg" rows="3" placeholder="请输入您的问题... *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                    <i class="fas fa-paper-plane"></i>发送消息
+            
+            <!-- 新消息表单 -->
+            <div id="newMessagePanel">
+                <div class="bg-blue-50 p-3 rounded-lg text-sm mb-4">
+                    <i class="fas fa-info-circle text-indigo-500 mr-1"></i> 请填写信息，客服会尽快回复
+                </div>
+                <form id="msgForm">
+                    <input type="text" id="userName" placeholder="您的姓名 *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="email" id="userEmail" placeholder="电子邮箱 *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <textarea id="userMsg" rows="3" placeholder="请输入您的问题... *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i>发送消息
+                    </button>
+                </form>
+                <div id="sendStatus" class="text-sm text-center mt-3 hidden text-green-600"></div>
+            </div>
+            
+            <!-- 查询面板 -->
+            <div id="queryPanel" style="display: none;">
+                <div class="bg-gray-100 p-3 rounded-lg text-sm mb-4">
+                    <i class="fas fa-search text-indigo-500 mr-1"></i> 输入邮箱，查看所有消息及客服回复
+                </div>
+                <input type="email" id="queryEmail" placeholder="请输入您的电子邮箱" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3">
+                <button id="queryBtn" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-search"></i>查询我的消息
                 </button>
-            </form>
-            <div id="sendStatus" class="text-sm text-center mt-3 hidden text-green-600"></div>
+                <div id="queryResult" class="mt-4 messages-area" style="display: none;">
+                    <h4 class="font-semibold text-sm mb-2">📋 我的对话记录</h4>
+                    <div id="messageList"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // ========== Supabase 配置 ==========
-        const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
-        
-        // 创建 Supabase 客户端（只创建一次）
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const TABLE_NAME = 'livechat_messages';
+        (function() {
+            const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
+            
+            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const TABLE_NAME = 'livechat_messages';
 
-        // DOM 元素
-        const chatModal = document.getElementById('chatModal');
-        const chatBtn = document.getElementById('chatBtn');
-        const openChatHero = document.getElementById('openChatHero');
-        const closeModal = document.getElementById('closeModal');
-        const msgForm = document.getElementById('msgForm');
-        const sendStatus = document.getElementById('sendStatus');
+            // DOM 元素
+            const chatModal = document.getElementById('chatModal');
+            const chatBtn = document.getElementById('chatBtn');
+            const openChatHero = document.getElementById('openChatHero');
+            const closeModal = document.getElementById('closeModal');
+            const msgForm = document.getElementById('msgForm');
+            const sendStatus = document.getElementById('sendStatus');
+            const tabNew = document.getElementById('tabNew');
+            const tabQuery = document.getElementById('tabQuery');
+            const newPanel = document.getElementById('newMessagePanel');
+            const queryPanel = document.getElementById('queryPanel');
+            const queryBtn = document.getElementById('queryBtn');
+            const queryEmail = document.getElementById('queryEmail');
+            const queryResult = document.getElementById('queryResult');
+            const messageList = document.getElementById('messageList');
 
-        // 打开弹窗
-        function openChatModal() {
-            console.log('打开弹窗');
-            chatModal.classList.add('show');
-        }
+            function openChatModal() { chatModal.classList.add('show'); }
+            function closeChatModal() { chatModal.classList.remove('show'); }
 
-        // 关闭弹窗
-        function closeChatModal() {
-            chatModal.classList.remove('show');
-        }
-
-        // 绑定打开事件
-        if (chatBtn) {
             chatBtn.onclick = openChatModal;
-        }
-        if (openChatHero) {
             openChatHero.onclick = openChatModal;
-        }
-        if (closeModal) {
             closeModal.onclick = closeChatModal;
-        }
 
-        // 点击弹窗外部关闭（可选）
-        window.onclick = function(event) {
-            if (event.target === chatModal) {
-                closeChatModal();
-            }
-        }
+            // 标签页切换
+            tabNew.onclick = function() {
+                tabNew.classList.add('text-indigo-600', 'border-indigo-600');
+                tabNew.classList.remove('text-gray-500');
+                tabQuery.classList.remove('text-indigo-600', 'border-indigo-600');
+                tabQuery.classList.add('text-gray-500');
+                newPanel.style.display = 'block';
+                queryPanel.style.display = 'none';
+                queryResult.style.display = 'none';
+            };
+            
+            tabQuery.onclick = function() {
+                tabQuery.classList.add('text-indigo-600', 'border-indigo-600');
+                tabQuery.classList.remove('text-gray-500');
+                tabNew.classList.remove('text-indigo-600', 'border-indigo-600');
+                tabNew.classList.add('text-gray-500');
+                newPanel.style.display = 'none';
+                queryPanel.style.display = 'block';
+            };
 
-        // 提交表单
-        if (msgForm) {
+            // 发送消息
             msgForm.onsubmit = async function(e) {
                 e.preventDefault();
-                
                 const name = document.getElementById('userName').value.trim();
                 const email = document.getElementById('userEmail').value.trim();
                 const message = document.getElementById('userMsg').value.trim();
@@ -184,41 +217,81 @@
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
                 submitBtn.disabled = true;
                 
-                try {
-                    const { error } = await supabaseClient
-                        .from(TABLE_NAME)
-                        .insert([{
-                            name: name,
-                            email: email,
-                            message: message,
-                            reply: '',
-                            is_replied: false,
-                            created_at: new Date().toISOString()
-                        }]);
-                    
-                    if (error) {
-                        console.error('发送失败:', error);
-                        alert('发送失败：' + error.message);
-                    } else {
-                        sendStatus.textContent = '✓ 发送成功！客服会尽快回复您';
-                        sendStatus.classList.remove('hidden');
-                        msgForm.reset();
-                        setTimeout(() => {
-                            sendStatus.classList.add('hidden');
-                            closeChatModal();
-                        }, 2000);
-                    }
-                } catch (err) {
-                    console.error('错误:', err);
-                    alert('发送失败，请检查网络连接');
-                } finally {
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
+                const { error } = await _supabase.from(TABLE_NAME).insert([{
+                    name, email, message, reply: '', is_replied: false, created_at: new Date().toISOString()
+                }]);
+                
+                if (error) {
+                    alert('发送失败：' + error.message);
+                } else {
+                    sendStatus.textContent = '✓ 发送成功！客服会尽快回复您';
+                    sendStatus.classList.remove('hidden');
+                    msgForm.reset();
+                    setTimeout(() => {
+                        sendStatus.classList.add('hidden');
+                        closeChatModal();
+                    }, 2000);
                 }
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             };
-        }
 
-        console.log('页面加载完成，点击右下角按钮或联系客服按钮测试弹窗');
+            // 查询消息
+            queryBtn.onclick = async function() {
+                const email = queryEmail.value.trim();
+                if (!email) {
+                    alert('请输入邮箱地址');
+                    return;
+                }
+                
+                const { data, error } = await _supabase
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .eq('email', email)
+                    .order('created_at', { ascending: true });
+                
+                if (error) {
+                    alert('查询失败：' + error.message);
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    messageList.innerHTML = '<div class="text-gray-400 text-center py-4">暂无消息记录</div>';
+                } else {
+                    let html = '';
+                    for (let msg of data) {
+                        const time = new Date(msg.created_at).toLocaleString('zh-CN');
+                        html += `<div class="mb-3">
+                            <div class="text-xs text-gray-400 mb-1">${time}</div>
+                            <div class="message-bubble user-message" style="background:#e0e7ff; padding:8px 12px; border-radius:12px; margin-bottom:4px;">
+                                <div class="text-xs text-indigo-600 font-semibold">我：</div>
+                                <div>${escapeHtml(msg.message)}</div>
+                            </div>`;
+                        if (msg.reply && msg.reply.trim() !== '') {
+                            html += `<div class="message-bubble reply-message" style="background:#d1fae5; padding:8px 12px; border-radius:12px;">
+                                <div class="text-xs text-green-600 font-semibold">客服回复：</div>
+                                <div>${escapeHtml(msg.reply)}</div>
+                            </div>`;
+                        } else {
+                            html += `<div class="text-xs text-gray-400 italic ml-2">⏳ 等待客服回复...</div>`;
+                        }
+                        html += `</div><hr class="my-2">`;
+                    }
+                    messageList.innerHTML = html;
+                }
+                queryResult.style.display = 'block';
+            };
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
+            }
+        })();
     </script>
 </body>
 </html>
