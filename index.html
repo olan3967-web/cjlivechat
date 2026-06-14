@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>智能客服 | 实时对话</title>
+    <title>CJ智能客服 | 实时对话</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f3f4f6; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #ffffff; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0d1117 100%);
+        }
         
         .chat-interface {
             position: fixed;
@@ -25,7 +30,7 @@
         .chat-interface.open { display: flex; }
         
         .chat-header {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
             color: white;
             padding: 16px 20px;
             display: flex;
@@ -52,7 +57,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            background: #f5f5f5;
+            background: #f5f7fa;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -69,7 +74,7 @@
             max-width: 100%;
         }
         .user .bubble {
-            background: #4f46e5;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             border-bottom-right-radius: 4px;
         }
@@ -102,9 +107,9 @@
             outline: none;
             font-size: 15px;
         }
-        .input-area input:focus { border-color: #4f46e5; }
+        .input-area input:focus { border-color: #2563eb; }
         .send-btn {
-            background: #4f46e5;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             border: none;
             color: white;
             width: 44px;
@@ -114,108 +119,237 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: transform 0.2s, opacity 0.2s;
         }
-        .send-btn:hover { background: #4338ca; }
-        .send-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
+        .send-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
         
+        /* 信息收集弹窗 */
         .info-modal {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 10001;
         }
+        .info-modal.show {
+            display: flex;
+        }
         .info-card {
             background: white;
             border-radius: 24px;
-            padding: 24px;
-            width: 320px;
+            padding: 32px;
+            width: 450px;
             max-width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        .info-card input {
+        .info-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .info-card input, .info-card textarea {
             width: 100%;
             border: 1px solid #e5e7eb;
             border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
             outline: none;
+            font-size: 15px;
+            transition: border-color 0.2s;
+            font-family: inherit;
         }
-        .info-card input:focus { border-color: #4f46e5; }
+        .info-card textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .info-card input:focus, .info-card textarea:focus { 
+            border-color: #2563eb; 
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1); 
+        }
         .start-btn {
             width: 100%;
-            background: #4f46e5;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             border: none;
-            padding: 12px;
+            padding: 14px;
             border-radius: 12px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
         }
+        .start-btn:hover { transform: translateY(-1px); opacity: 0.9; }
         
         .landing-btn {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 24px;
+            right: 24px;
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(79,70,229,0.4);
+            box-shadow: 0 4px 20px rgba(37,99,235,0.4);
             z-index: 9999;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .landing-btn:hover { transform: scale(1.1); }
+        .landing-btn:hover { transform: scale(1.1); box-shadow: 0 8px 30px rgba(37,99,235,0.5); }
         
         .toast-msg {
             position: fixed;
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 14px;
             z-index: 10002;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        
+        .messages-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        .required-star {
+            color: #ef4444;
+            margin-left: 2px;
+        }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #374151;
         }
     </style>
 </head>
 <body>
-    <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-white">
-        <div class="container mx-auto px-4 py-20 text-center">
-            <h1 class="text-5xl font-bold text-indigo-900 mb-4">智能客服</h1>
-            <p class="text-xl text-gray-600 mb-8">有问题？点击右下角按钮，立即与我们对话</p>
-            <button id="openChatLanding" class="bg-indigo-600 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-indigo-700 transition">
-                <i class="fas fa-comment-dots mr-2"></i>开始对话
+
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-headset text-white text-sm"></i>
+                </div>
+                <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">CJ Support</span>
+            </div>
+            <button id="openChatNav" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-full text-sm font-semibold hover:shadow-lg transition">
+                <i class="fas fa-comment-dots mr-1"></i> 联系客服
             </button>
         </div>
-        <div class="container mx-auto px-4 py-12">
-            <div class="grid md:grid-cols-3 gap-6 text-center">
-                <div class="bg-white p-6 rounded-xl shadow"><i class="fas fa-bolt text-3xl text-indigo-500 mb-3"></i><h3 class="font-bold">实时对话</h3><p class="text-gray-500">像微信一样实时聊天</p></div>
-                <div class="bg-white p-6 rounded-xl shadow"><i class="fas fa-headset text-3xl text-indigo-500 mb-3"></i><h3 class="font-bold">专业客服</h3><p class="text-gray-500">人工回复，解决问题</p></div>
-                <div class="bg-white p-6 rounded-xl shadow"><i class="fas fa-history text-3xl text-indigo-500 mb-3"></i><h3 class="font-bold">历史记录</h3><p class="text-gray-500">所有对话永久保存</p></div>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <section class="pt-24 pb-16 px-4 gradient-bg">
+        <div class="container mx-auto max-w-5xl text-center">
+            <div class="inline-block px-4 py-1 rounded-full bg-white/10 text-white/80 text-sm mb-6 backdrop-blur-sm">
+                🚀 7x24小时在线支持
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                智能客服，<br>
+                <span class="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">实时响应</span>
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                有问题随时联系我们，专业客服团队会第一时间为您解答
+            </p>
+            <button id="openChatHero" class="bg-white text-gray-900 px-8 py-3 rounded-full font-semibold text-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
+                <i class="fas fa-headset mr-2"></i>开始对话
+            </button>
+        </div>
+    </section>
+
+    <!-- 功能特点 -->
+    <section class="py-16 px-4 bg-white">
+        <div class="container mx-auto max-w-6xl">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">为什么选择我们</h2>
+                <p class="text-gray-500 max-w-2xl mx-auto">专业、高效、可靠的客户服务体验</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all duration-300">
+                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-100 transition">
+                        <i class="fas fa-bolt text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">极速响应</h3>
+                    <p class="text-gray-500">平均响应时间小于30秒，让您的问题快速得到解决</p>
+                </div>
+                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all duration-300">
+                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-100 transition">
+                        <i class="fas fa-headset text-2xl text-purple-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">专业团队</h3>
+                    <p class="text-gray-500">经验丰富的客服团队，为您提供专业解决方案</p>
+                </div>
+                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all duration-300">
+                    <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-100 transition">
+                        <i class="fas fa-database text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">永久保存</h3>
+                    <p class="text-gray-500">所有对话记录永久保存，随时可追溯历史</p>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
+    <!-- 信任徽章 -->
+    <section class="py-12 px-4 bg-gray-50">
+        <div class="container mx-auto max-w-4xl">
+            <div class="flex flex-wrap justify-center gap-8 items-center">
+                <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-shield-alt text-green-500"></i><span>数据加密存储</span></div>
+                <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-clock text-blue-500"></i><span>7x24小时服务</span></div>
+                <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-globe text-purple-500"></i><span>全球覆盖</span></div>
+                <div class="flex items-center gap-2 text-gray-500"><i class="fas fa-users text-orange-500"></i><span>10万+用户信赖</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部 -->
+    <footer class="bg-gray-900 text-white py-8 text-center text-sm">
+        <p>© 2025 CJ Support. All rights reserved.</p>
+    </footer>
+
+    <!-- 悬浮聊天按钮 -->
     <div class="landing-btn" id="floatingChatBtn">
         <i class="fas fa-comment-dots text-2xl"></i>
     </div>
 
+    <!-- 聊天界面 -->
     <div class="chat-interface" id="chatInterface">
         <div class="chat-header">
             <button class="back-btn" id="closeChatInterface"><i class="fas fa-arrow-left"></i></button>
-            <div><div style="font-weight: bold;">客服助手</div><div style="font-size: 12px; opacity: 0.8;">在线</div></div>
+            <div class="flex-1">
+                <div style="font-weight: 700;">CJ 智能客服</div>
+                <div style="font-size: 11px; opacity: 0.8;">在线 · 通常秒回</div>
+            </div>
+            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
         </div>
         <div class="messages-container" id="messagesContainer"></div>
         <div class="input-area">
@@ -224,19 +358,40 @@
         </div>
     </div>
 
-    <div id="userInfoModal" class="info-modal" style="display: flex;">
+    <!-- 用户信息收集弹窗（第一次点击联系客服时显示） -->
+    <div id="userInfoModal" class="info-modal">
         <div class="info-card">
-            <h3 class="text-xl font-bold mb-4 text-center">欢迎使用智能客服</h3>
-            <p class="text-gray-500 text-sm mb-4 text-center">请填写以下信息，开始对话</p>
-            <input type="text" id="userNameInput" placeholder="您的姓名" autocomplete="off">
-            <input type="email" id="userEmailInput" placeholder="电子邮箱" autocomplete="off">
-            <button class="start-btn" id="startChatBtn">开始对话</button>
+            <div class="text-center mb-4">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-user-plus text-white text-2xl"></i>
+                </div>
+                <h3>填写信息开始对话</h3>
+                <p class="text-gray-400 text-sm mt-2">请填写以下信息，客服会尽快联系您</p>
+            </div>
+            <form id="userInfoForm">
+                <div>
+                    <label class="form-label">姓名 <span class="required-star">*</span></label>
+                    <input type="text" id="userNameInput" placeholder="请输入您的姓名" autocomplete="off" required>
+                </div>
+                <div>
+                    <label class="form-label">邮箱 <span class="required-star">*</span></label>
+                    <input type="email" id="userEmailInput" placeholder="example@email.com" autocomplete="off" required>
+                </div>
+                <div>
+                    <label class="form-label">手机号 <span class="required-star">*</span></label>
+                    <input type="tel" id="userPhoneInput" placeholder="请输入手机号码" autocomplete="off" required>
+                </div>
+                <div>
+                    <label class="form-label">发货地址</label>
+                    <textarea id="userAddressInput" placeholder="请输入您的发货地址（选填）" rows="2"></textarea>
+                </div>
+                <button type="submit" class="start-btn">开始对话 <i class="fas fa-arrow-right ml-1"></i></button>
+            </form>
         </div>
     </div>
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
-        // 使用立即执行函数避免全局变量冲突
         (function() {
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
@@ -244,26 +399,29 @@
             const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
             
-            let currentUser = { id: null, name: null, email: null };
+            let currentUser = { id: null, name: null, email: null, phone: null, address: null };
             let realtimeChannel = null;
             
             // DOM 元素
             const userInfoModal = document.getElementById('userInfoModal');
+            const userInfoForm = document.getElementById('userInfoForm');
             const chatInterface = document.getElementById('chatInterface');
             const messagesContainer = document.getElementById('messagesContainer');
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendMessageBtn');
-            const startChatBtn = document.getElementById('startChatBtn');
             const userNameInput = document.getElementById('userNameInput');
             const userEmailInput = document.getElementById('userEmailInput');
-            const openChatLanding = document.getElementById('openChatLanding');
+            const userPhoneInput = document.getElementById('userPhoneInput');
+            const userAddressInput = document.getElementById('userAddressInput');
+            const openChatNav = document.getElementById('openChatNav');
+            const openChatHero = document.getElementById('openChatHero');
             const floatingChatBtn = document.getElementById('floatingChatBtn');
             const closeChatInterface = document.getElementById('closeChatInterface');
             const toastEl = document.getElementById('toastMsg');
             
             function showToast(msg, isError = false) {
                 toastEl.textContent = msg;
-                toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.7)';
+                toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.8)';
                 toastEl.style.opacity = '1';
                 setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
@@ -300,19 +458,15 @@
                 scrollToBottom();
             }
             
-            // 更新回复（不重新加载全部）
             function updateReplyInUI(messageId, replyText) {
                 const allMessages = messagesContainer.querySelectorAll('.message.user');
                 for (let userMsg of allMessages) {
                     if (userMsg.getAttribute('data-msg-id') == messageId) {
-                        // 检查是否已有回复
                         let nextSibling = userMsg.nextElementSibling;
                         if (nextSibling && nextSibling.classList && nextSibling.classList.contains('admin') && nextSibling.getAttribute('data-reply-for') == messageId) {
-                            // 更新现有回复
                             const bubble = nextSibling.querySelector('.bubble');
                             if (bubble) bubble.innerHTML = escapeHtml(replyText);
                         } else {
-                            // 添加新回复
                             const replyDiv = document.createElement('div');
                             replyDiv.className = 'message admin';
                             replyDiv.setAttribute('data-reply-for', messageId);
@@ -340,7 +494,7 @@
                 if (error) { console.error(error); return; }
                 
                 messagesContainer.innerHTML = '';
-                addMessageToUI('您好！我是客服助手，请问有什么可以帮助您的？', false, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                addMessageToUI(`您好 ${currentUser.name || '用户'}！我是CJ客服助手，请问有什么可以帮助您的？`, false, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                 
                 if (data && data.length) {
                     for (let msg of data) {
@@ -363,9 +517,19 @@
                 messageInput.value = '';
                 messageInput.focus();
                 
+                // 保存完整用户信息到数据库
                 const { data, error } = await _supabase
                     .from(TABLE_NAME)
-                    .insert([{ name: currentUser.name, email: currentUser.email, message: message, reply: '', is_replied: false, created_at: new Date().toISOString() }])
+                    .insert([{ 
+                        name: currentUser.name, 
+                        email: currentUser.email, 
+                        phone: currentUser.phone,
+                        address: currentUser.address,
+                        message: message, 
+                        reply: '', 
+                        is_replied: false, 
+                        created_at: new Date().toISOString() 
+                    }])
                     .select();
                 
                 if (error) { 
@@ -409,36 +573,61 @@
                     });
             }
             
-            // 初始化用户
+            // 检查本地存储是否有用户信息
             const savedUser = localStorage.getItem('chat_user');
             if (savedUser) {
                 try {
                     const user = JSON.parse(savedUser);
-                    if (user && user.email) {
+                    if (user && user.email && user.name && user.phone) {
                         currentUser = user;
-                        userInfoModal.style.display = 'none';
+                        userInfoModal.classList.remove('show');
                         loadUserMessages();
                         setupRealtimeSubscription();
                     }
                 } catch(e) {}
             }
             
-            startChatBtn.onclick = function() {
+            // 提交用户信息表单
+            userInfoForm.onsubmit = function(e) {
+                e.preventDefault();
                 const name = userNameInput.value.trim();
                 const email = userEmailInput.value.trim();
-                if (!name || !email) { showToast('请填写姓名和邮箱', true); return; }
-                currentUser = { id: Date.now().toString(), name: name, email: email };
+                const phone = userPhoneInput.value.trim();
+                const address = userAddressInput.value.trim();
+                
+                if (!name) { showToast('请填写姓名', true); return; }
+                if (!email) { showToast('请填写邮箱', true); return; }
+                if (!phone) { showToast('请填写手机号', true); return; }
+                if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+                    showToast('请输入有效的邮箱地址', true); 
+                    return;
+                }
+                if (!/^1[3-9]\d{9}$/.test(phone) && !/^\+\d{10,15}$/.test(phone)) {
+                    showToast('请输入有效的手机号码', true);
+                    return;
+                }
+                
+                currentUser = { 
+                    id: Date.now().toString(), 
+                    name: name, 
+                    email: email, 
+                    phone: phone, 
+                    address: address || '' 
+                };
                 localStorage.setItem('chat_user', JSON.stringify(currentUser));
-                userInfoModal.style.display = 'none';
+                userInfoModal.classList.remove('show');
                 loadUserMessages();
                 setupRealtimeSubscription();
                 chatInterface.classList.add('open');
                 messageInput.focus();
+                showToast('欢迎！开始聊天吧');
             };
             
+            // 打开聊天（先检查是否有用户信息）
             function openChat() {
-                if (!currentUser.name) {
-                    userInfoModal.style.display = 'flex';
+                if (!currentUser.name || !currentUser.phone) {
+                    // 显示信息收集弹窗
+                    userInfoModal.classList.add('show');
                 } else {
                     chatInterface.classList.add('open');
                     messageInput.focus();
@@ -446,13 +635,14 @@
                 }
             }
             
-            openChatLanding.onclick = openChat;
+            openChatNav.onclick = openChat;
+            openChatHero.onclick = openChat;
             floatingChatBtn.onclick = openChat;
             closeChatInterface.onclick = () => chatInterface.classList.remove('open');
             sendBtn.onclick = sendMessage;
             messageInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
             
-            console.log('前端已启动');
+            console.log('前端已启动 - CJ风格，首次点击联系客服填写信息');
         })();
     </script>
 </body>
