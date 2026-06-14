@@ -26,13 +26,18 @@
         .has-unread { animation: pulse 0.5s; background: #fef2f2; }
         @keyframes pulse { 0% { background: #fee2e2; } 100% { background: transparent; } }
         
-        .chat-message { margin-bottom: 16px; display: flex; flex-direction: column; }
-        .chat-message.user { align-items: flex-end; }
-        .chat-message.admin { align-items: flex-start; }
-        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 13px; }
-        .chat-bubble.user { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-bottom-right-radius: 4px; }
-        .chat-bubble.admin { background: white; color: #1f2937; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        /* 聊天消息样式 - 管理员消息在右侧，用户消息在左侧 */
+        .chat-message { margin-bottom: 16px; display: flex; width: 100%; }
+        .chat-message.user { justify-content: flex-start; }
+        .chat-message.admin { justify-content: flex-end; }
+        .chat-bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 13px; word-wrap: break-word; }
+        .chat-bubble.user { background: #e5e7eb; color: #1f2937; border-bottom-left-radius: 4px; }
+        .chat-bubble.admin { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-bottom-right-radius: 4px; }
         .chat-image { max-width: 150px; max-height: 150px; border-radius: 12px; margin-top: 4px; cursor: pointer; }
+        .message-time { font-size: 10px; margin-top: 4px; opacity: 0.7; }
+        .user .message-time { text-align: left; }
+        .admin .message-time { text-align: right; }
+        
         .image-preview-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
@@ -150,7 +155,7 @@
             const toastEl = document.getElementById('toastMsg');
             function showToast(msg, isError = false) { toastEl.textContent = msg; toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.8)'; toastEl.style.opacity = '1'; setTimeout(() => { toastEl.style.opacity = '0'; }, 2500); }
             function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-            function formatDate(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString('zh-CN', { hour12: false }); }
+            function formatTime(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
             
             window.showImagePreview = function(url) { document.getElementById('previewImage').src = url; document.getElementById('imagePreviewModal').classList.add('show'); };
             window.closeImagePreview = function() { document.getElementById('imagePreviewModal').classList.remove('show'); };
@@ -185,7 +190,7 @@
                     const group = groups[email];
                     const lastMsg = group.messages[group.messages.length - 1];
                     const hasUnread = group.messages.some(m => !m.reply || m.reply === '');
-                    const lastTime = formatDate(lastMsg.created_at);
+                    const lastTime = new Date(lastMsg.created_at).toLocaleString('zh-CN');
                     html += `<div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}">
                         <div class="flex-1 cursor-pointer" onclick="window.openConversation('${escapeHtml(email)}')">
                             <div class="flex items-center gap-3 mb-1">
@@ -216,10 +221,24 @@
                     `;
                     let previewHtml = '<div class="space-y-3">';
                     for (let msg of data) {
-                        const time = formatDate(msg.created_at);
-                        previewHtml += `<div class="chat-message user"><div class="chat-bubble user"><div>${escapeHtml(msg.message)}</div>${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">` : ''}<div class="text-xs opacity-70 mt-1">${time}</div></div></div>`;
+                        const time = formatTime(msg.created_at);
+                        // 用户消息在左侧
+                        previewHtml += `<div class="chat-message user">
+                            <div class="chat-bubble user">
+                                <div>${escapeHtml(msg.message)}</div>
+                                ${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">` : ''}
+                                <div class="message-time">${time}</div>
+                            </div>
+                        </div>`;
+                        // 管理员回复在右侧（如果有）
                         if (msg.reply && msg.reply.trim()) {
-                            previewHtml += `<div class="chat-message admin"><div class="chat-bubble admin"><div>${escapeHtml(msg.reply)}</div>${msg.reply_image_url ? `<img src="${escapeHtml(msg.reply_image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.reply_image_url)}')">` : ''}<div class="text-xs text-gray-400 mt-1">${time}</div></div></div>`;
+                            previewHtml += `<div class="chat-message admin">
+                                <div class="chat-bubble admin">
+                                    <div>${escapeHtml(msg.reply)}</div>
+                                    ${msg.reply_image_url ? `<img src="${escapeHtml(msg.reply_image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.reply_image_url)}')">` : ''}
+                                    <div class="message-time">${time}</div>
+                                </div>
+                            </div>`;
                         }
                     }
                     previewHtml += '</div>';
@@ -239,20 +258,46 @@
             async function submitReply() {
                 const reply = document.getElementById('replyInput').value.trim();
                 if (!reply && !pendingReplyImage) { showToast('请输入回复内容', true); return; }
+                
+                // 获取当前用户的所有消息
                 const { data: messages } = await _supabase.from(TABLE_NAME).select('*').eq('email', currentUserEmail).order('created_at', { ascending: true });
+                
+                // 找到所有未回复的消息（reply 为空或空字符串）
                 const unreadMessages = messages.filter(m => !m.reply || m.reply === '');
-                if (unreadMessages.length === 0) { showToast('所有消息都已回复', true); return; }
-                const targetMsg = unreadMessages[unreadMessages.length - 1];
+                
+                if (unreadMessages.length === 0) { 
+                    showToast('所有消息都已回复过了', true); 
+                    return; 
+                }
+                
+                // 回复最早的一条未回复消息（按时间顺序）
+                const targetMsg = unreadMessages[0];
+                
                 let imageUrl = null;
-                if (pendingReplyImage) { imageUrl = await uploadImage(pendingReplyImage); pendingReplyImage = null; }
+                if (pendingReplyImage) { 
+                    imageUrl = await uploadImage(pendingReplyImage); 
+                    pendingReplyImage = null; 
+                    document.getElementById('replyImagePreview').style.display = 'none';
+                }
+                
                 const updateData = { reply: reply || '', is_replied: true };
                 if (imageUrl) updateData.reply_image_url = imageUrl;
+                
                 const { error } = await _supabase.from(TABLE_NAME).update(updateData).eq('id', targetMsg.id);
-                if (error) { showToast('回复失败: ' + error.message, true); }
-                else { showToast('回复成功！用户端会实时显示'); document.getElementById('replyModal').classList.add('hidden'); renderConversations(); }
+                
+                if (error) { 
+                    showToast('回复失败: ' + error.message, true); 
+                } else { 
+                    showToast('回复成功！');
+                    // 清空输入框
+                    document.getElementById('replyInput').value = '';
+                    // 重新加载对话预览
+                    await window.openConversation(currentUserEmail);
+                    renderConversations();
+                }
             }
             
-            function setupRealtime() { if (realtimeChannel) _supabase.removeChannel(realtimeChannel); realtimeChannel = _supabase.channel('admin-realtime').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => renderConversations()).subscribe(); }
+            function setupRealtime() { if (realtimeChannel) _supabase.removeChannel(realtimeChannel); realtimeChannel = _supabase.channel('admin-realtime').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => { renderConversations(); if (currentUserEmail) window.openConversation(currentUserEmail); }).subscribe(); }
             
             // 绑定事件
             document.getElementById('refreshBtn').onclick = renderConversations;
