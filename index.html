@@ -2,295 +2,548 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能落地页 | 即时对话</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>智能客服 | 实时对话</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .chat-modal {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 400px;
-            max-width: calc(100vw - 40px);
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            z-index: 9999;
-            display: none;
-            max-height: 600px;
-            overflow: hidden;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .chat-modal.show {
-            display: flex;
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        /* 聊天界面样式 */
+        .chat-interface {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            top: 0;
+            background: white;
+            z-index: 10000;
+            display: none;
             flex-direction: column;
         }
-        .chat-btn {
+        
+        .chat-interface.open {
+            display: flex;
+        }
+        
+        /* 聊天头部 */
+        .chat-header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* 消息区域 */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        /* 消息气泡 */
+        .message {
+            display: flex;
+            max-width: 80%;
+        }
+        
+        .message.user {
+            align-self: flex-end;
+            justify-content: flex-end;
+        }
+        
+        .message.admin {
+            align-self: flex-start;
+        }
+        
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+        
+        .user .bubble {
+            background: #4f46e5;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .admin .bubble {
+            background: white;
+            color: #1f2937;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .message-time {
+            font-size: 10px;
+            margin-top: 4px;
+            color: #9ca3af;
+        }
+        
+        .user .message-time {
+            text-align: right;
+        }
+        
+        /* 输入区域 */
+        .input-area {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 12px 16px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .input-area input {
+            flex: 1;
+            border: 1px solid #e5e7eb;
+            border-radius: 24px;
+            padding: 10px 16px;
+            outline: none;
+            font-size: 15px;
+        }
+        
+        .input-area input:focus {
+            border-color: #4f46e5;
+        }
+        
+        .send-btn {
+            background: #4f46e5;
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .send-btn:hover {
+            background: #4338ca;
+        }
+        
+        .send-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        /* 用户信息弹窗（首次进入） */
+        .info-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            width: 320px;
+            max-width: 90%;
+        }
+        
+        .info-card input {
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        
+        .info-card input:focus {
+            border-color: #4f46e5;
+        }
+        
+        .start-btn {
+            width: 100%;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        /* 落地页按钮 */
+        .landing-btn {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 56px;
-            height: 56px;
+            width: 60px;
+            height: 60px;
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
-            z-index: 9998;
-            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(79,70,229,0.4);
+            z-index: 9999;
+            transition: transform 0.2s;
         }
-        .chat-btn:hover {
+        
+        .landing-btn:hover {
             transform: scale(1.1);
         }
-        .messages-area {
-            max-height: 300px;
-            overflow-y: auto;
-            background: #f9fafb;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        .user-message {
-            background: #e0e7ff;
-            margin-left: auto;
-            margin-right: 0;
-        }
-        .reply-message {
-            background: #d1fae5;
-            margin-right: auto;
-            margin-left: 0;
-        }
-        .message-bubble {
+        
+        .typing-indicator {
+            display: inline-block;
             padding: 8px 12px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            max-width: 85%;
-            word-wrap: break-word;
+            background: white;
+            border-radius: 18px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .typing-indicator span {
+            animation: blink 1.4s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body>
 
-    <div class="min-h-screen">
-        <section class="bg-gradient-to-r from-indigo-900 via-purple-800 to-indigo-900 text-white py-20 px-4">
-            <div class="container mx-auto max-w-5xl text-center">
-                <h1 class="text-4xl md:text-6xl font-bold mb-4">智能客服，实时响应</h1>
-                <p class="text-lg md:text-xl text-gray-200 mb-8">有问题随时问，客服会第一时间回复您</p>
-                <button id="openChatHero" class="bg-white text-indigo-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg">
-                    <i class="fas fa-comment-dots mr-2"></i>联系客服
+    <!-- 落地页内容 -->
+    <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-white">
+        <div class="container mx-auto px-4 py-20 text-center">
+            <h1 class="text-5xl font-bold text-indigo-900 mb-4">智能客服</h1>
+            <p class="text-xl text-gray-600 mb-8">有问题？点击右下角按钮，立即与我们对话</p>
+            <div class="flex justify-center gap-4">
+                <button id="openChatLanding" class="bg-indigo-600 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-indigo-700 transition">
+                    <i class="fas fa-comment-dots mr-2"></i>开始对话
                 </button>
             </div>
-        </section>
-
-        <section class="py-16 px-4 max-w-6xl mx-auto">
-            <div class="grid md:grid-cols-3 gap-8 text-center">
-                <div class="bg-white p-6 rounded-2xl shadow-md"><i class="fas fa-bolt text-4xl text-indigo-500 mb-3"></i><h3 class="text-xl font-bold">极速响应</h3><p class="text-gray-500">客服会尽快回复</p></div>
-                <div class="bg-white p-6 rounded-2xl shadow-md"><i class="fas fa-headset text-4xl text-indigo-500 mb-3"></i><h3 class="text-xl font-bold">专业客服</h3><p class="text-gray-500">经验丰富的团队</p></div>
-                <div class="bg-white p-6 rounded-2xl shadow-md"><i class="fas fa-database text-4xl text-indigo-500 mb-3"></i><h3 class="text-xl font-bold">消息可追溯</h3><p class="text-gray-500">输入邮箱可查看回复</p></div>
+        </div>
+        
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid md:grid-cols-3 gap-6 text-center">
+                <div class="bg-white p-6 rounded-xl shadow"><i class="fas fa-bolt text-3xl text-indigo-500 mb-3"></i><h3 class="font-bold">实时对话</h3><p class="text-gray-500">像微信一样实时聊天</p></div>
+                <div class="bg-white p-6 rounded-xl shadow"><i class="fas fa-headset text-3xl text-indigo-500 mb-3"></i><h3 class="font-bold">专业客服</h3><p class="text-gray-500">人工回复，解决问题</p></div>
+                <div class="bg-white p-6 rounded-xl shadow"><i class="fas fa-history text-3xl text-indigo-500 mb-3"></i><h3 class="font-bold">历史记录</h3><p class="text-gray-500">所有对话永久保存</p></div>
             </div>
-        </section>
-
-        <footer class="bg-gray-800 text-white py-6 text-center text-sm">
-            <p>© 2025 智能落地页 | 实时对话系统</p>
-        </footer>
+        </div>
     </div>
 
-    <div class="chat-btn" id="chatBtn">
+    <!-- 悬浮按钮 -->
+    <div class="landing-btn" id="floatingChatBtn">
         <i class="fas fa-comment-dots text-2xl"></i>
     </div>
 
-    <!-- 聊天弹窗 -->
-    <div class="chat-modal" id="chatModal">
-        <div class="bg-indigo-600 text-white px-5 py-3 rounded-t-2xl flex justify-between items-center">
-            <span class="font-semibold"><i class="fas fa-headset mr-2"></i>在线客服</span>
-            <button id="closeModal" class="text-white text-2xl hover:text-gray-200">&times;</button>
+    <!-- 聊天界面 -->
+    <div class="chat-interface" id="chatInterface">
+        <div class="chat-header">
+            <button class="back-btn" id="closeChatInterface">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div>
+                <div style="font-weight: bold;">客服助手</div>
+                <div style="font-size: 12px; opacity: 0.8;">在线</div>
+            </div>
         </div>
         
-        <div class="p-4 flex-1 overflow-auto">
-            <!-- 标签页切换 -->
-            <div class="flex border-b mb-3">
-                <button id="tabNew" class="flex-1 py-2 text-indigo-600 border-b-2 border-indigo-600 font-medium">📝 新消息</button>
-                <button id="tabQuery" class="flex-1 py-2 text-gray-500 hover:text-gray-700">🔍 查询回复</button>
-            </div>
-            
-            <!-- 新消息表单 -->
-            <div id="newMessagePanel">
-                <div class="bg-blue-50 p-3 rounded-lg text-sm mb-4">
-                    <i class="fas fa-info-circle text-indigo-500 mr-1"></i> 请填写信息，客服会尽快回复
-                </div>
-                <form id="msgForm">
-                    <input type="text" id="userName" placeholder="您的姓名 *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="email" id="userEmail" placeholder="电子邮箱 *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <textarea id="userMsg" rows="3" placeholder="请输入您的问题... *" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                        <i class="fas fa-paper-plane"></i>发送消息
-                    </button>
-                </form>
-                <div id="sendStatus" class="text-sm text-center mt-3 hidden text-green-600"></div>
-            </div>
-            
-            <!-- 查询面板 -->
-            <div id="queryPanel" style="display: none;">
-                <div class="bg-gray-100 p-3 rounded-lg text-sm mb-4">
-                    <i class="fas fa-search text-indigo-500 mr-1"></i> 输入邮箱，查看所有消息及客服回复
-                </div>
-                <input type="email" id="queryEmail" placeholder="请输入您的电子邮箱" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3">
-                <button id="queryBtn" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                    <i class="fas fa-search"></i>查询我的消息
-                </button>
-                <div id="queryResult" class="mt-4 messages-area" style="display: none;">
-                    <h4 class="font-semibold text-sm mb-2">📋 我的对话记录</h4>
-                    <div id="messageList"></div>
+        <div class="messages-container" id="messagesContainer">
+            <div class="admin message">
+                <div class="bubble">
+                    您好！我是客服助手，请问有什么可以帮助您的？
                 </div>
             </div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
+            <button class="send-btn" id="sendMessageBtn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 用户信息弹窗 -->
+    <div id="userInfoModal" class="info-modal" style="display: flex;">
+        <div class="info-card">
+            <h3 class="text-xl font-bold mb-4 text-center">欢迎使用智能客服</h3>
+            <p class="text-gray-500 text-sm mb-4 text-center">请填写以下信息，开始对话</p>
+            <input type="text" id="userNameInput" placeholder="您的姓名" autocomplete="off">
+            <input type="email" id="userEmailInput" placeholder="电子邮箱" autocomplete="off">
+            <button class="start-btn" id="startChatBtn">开始对话</button>
         </div>
     </div>
 
     <script>
         (function() {
+            // Supabase 配置
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
             
-            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
-
-            // DOM 元素
-            const chatModal = document.getElementById('chatModal');
-            const chatBtn = document.getElementById('chatBtn');
-            const openChatHero = document.getElementById('openChatHero');
-            const closeModal = document.getElementById('closeModal');
-            const msgForm = document.getElementById('msgForm');
-            const sendStatus = document.getElementById('sendStatus');
-            const tabNew = document.getElementById('tabNew');
-            const tabQuery = document.getElementById('tabQuery');
-            const newPanel = document.getElementById('newMessagePanel');
-            const queryPanel = document.getElementById('queryPanel');
-            const queryBtn = document.getElementById('queryBtn');
-            const queryEmail = document.getElementById('queryEmail');
-            const queryResult = document.getElementById('queryResult');
-            const messageList = document.getElementById('messageList');
-
-            function openChatModal() { chatModal.classList.add('show'); }
-            function closeChatModal() { chatModal.classList.remove('show'); }
-
-            chatBtn.onclick = openChatModal;
-            openChatHero.onclick = openChatModal;
-            closeModal.onclick = closeChatModal;
-
-            // 标签页切换
-            tabNew.onclick = function() {
-                tabNew.classList.add('text-indigo-600', 'border-indigo-600');
-                tabNew.classList.remove('text-gray-500');
-                tabQuery.classList.remove('text-indigo-600', 'border-indigo-600');
-                tabQuery.classList.add('text-gray-500');
-                newPanel.style.display = 'block';
-                queryPanel.style.display = 'none';
-                queryResult.style.display = 'none';
+            
+            // 用户信息
+            let currentUser = {
+                id: null,
+                name: null,
+                email: null
             };
             
-            tabQuery.onclick = function() {
-                tabQuery.classList.add('text-indigo-600', 'border-indigo-600');
-                tabQuery.classList.remove('text-gray-500');
-                tabNew.classList.remove('text-indigo-600', 'border-indigo-600');
-                tabNew.classList.add('text-gray-500');
-                newPanel.style.display = 'none';
-                queryPanel.style.display = 'block';
-            };
-
-            // 发送消息
-            msgForm.onsubmit = async function(e) {
-                e.preventDefault();
-                const name = document.getElementById('userName').value.trim();
-                const email = document.getElementById('userEmail').value.trim();
-                const message = document.getElementById('userMsg').value.trim();
+            // DOM 元素
+            const userInfoModal = document.getElementById('userInfoModal');
+            const chatInterface = document.getElementById('chatInterface');
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendMessageBtn');
+            const startChatBtn = document.getElementById('startChatBtn');
+            const userNameInput = document.getElementById('userNameInput');
+            const userEmailInput = document.getElementById('userEmailInput');
+            
+            // 打开聊天的按钮
+            const openChatLanding = document.getElementById('openChatLanding');
+            const floatingChatBtn = document.getElementById('floatingChatBtn');
+            const closeChatInterface = document.getElementById('closeChatInterface');
+            
+            // 检查本地存储是否有用户信息
+            const savedUser = localStorage.getItem('chat_user');
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    currentUser = user;
+                    userInfoModal.style.display = 'none';
+                    openChatInterface();
+                    loadUserMessages();
+                    setupRealtimeSubscription();
+                } catch(e) {}
+            }
+            
+            // 开始对话按钮
+            startChatBtn.onclick = function() {
+                const name = userNameInput.value.trim();
+                const email = userEmailInput.value.trim();
                 
-                if (!name || !email || !message) {
-                    alert('请填写完整信息');
+                if (!name || !email) {
+                    alert('请填写姓名和邮箱');
                     return;
                 }
                 
-                const submitBtn = msgForm.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
-                submitBtn.disabled = true;
+                currentUser = {
+                    id: Date.now().toString(),
+                    name: name,
+                    email: email
+                };
                 
-                const { error } = await _supabase.from(TABLE_NAME).insert([{
-                    name, email, message, reply: '', is_replied: false, created_at: new Date().toISOString()
-                }]);
-                
-                if (error) {
-                    alert('发送失败：' + error.message);
+                localStorage.setItem('chat_user', JSON.stringify(currentUser));
+                userInfoModal.style.display = 'none';
+                openChatInterface();
+                setupRealtimeSubscription();
+            };
+            
+            // 打开聊天界面
+            function openChatInterface() {
+                chatInterface.classList.add('open');
+                messageInput.focus();
+                scrollToBottom();
+            }
+            
+            // 关闭聊天界面
+            function closeChatInterfaceFn() {
+                chatInterface.classList.remove('open');
+            }
+            
+            openChatLanding.onclick = function() {
+                if (!currentUser.name) {
+                    userInfoModal.style.display = 'flex';
                 } else {
-                    sendStatus.textContent = '✓ 发送成功！客服会尽快回复您';
-                    sendStatus.classList.remove('hidden');
-                    msgForm.reset();
-                    setTimeout(() => {
-                        sendStatus.classList.add('hidden');
-                        closeChatModal();
-                    }, 2000);
+                    openChatInterface();
+                    loadUserMessages();
                 }
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
             };
-
-            // 查询消息
-            queryBtn.onclick = async function() {
-                const email = queryEmail.value.trim();
-                if (!email) {
-                    alert('请输入邮箱地址');
-                    return;
+            
+            floatingChatBtn.onclick = function() {
+                if (!currentUser.name) {
+                    userInfoModal.style.display = 'flex';
+                } else {
+                    openChatInterface();
+                    loadUserMessages();
                 }
+            };
+            
+            closeChatInterface.onclick = closeChatInterfaceFn;
+            
+            // 添加消息到界面
+            function addMessageToUI(message, isUser, time) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = isUser ? 'message user' : 'message admin';
                 
-                const { data, error } = await _supabase
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'bubble';
+                bubbleDiv.innerHTML = message.replace(/\n/g, '<br>');
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.innerText = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                messageDiv.appendChild(bubbleDiv);
+                messageDiv.appendChild(timeDiv);
+                
+                messagesContainer.appendChild(messageDiv);
+                scrollToBottom();
+            }
+            
+            // 滚动到底部
+            function scrollToBottom() {
+                setTimeout(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 100);
+            }
+            
+            // 加载用户的所有消息
+            async function loadUserMessages() {
+                if (!currentUser.email) return;
+                
+                const { data, error } = await supabase
                     .from(TABLE_NAME)
                     .select('*')
-                    .eq('email', email)
+                    .eq('email', currentUser.email)
                     .order('created_at', { ascending: true });
                 
                 if (error) {
-                    alert('查询失败：' + error.message);
+                    console.error('加载失败:', error);
                     return;
                 }
                 
-                if (!data || data.length === 0) {
-                    messageList.innerHTML = '<div class="text-gray-400 text-center py-4">暂无消息记录</div>';
-                } else {
-                    let html = '';
+                // 清空消息区域，但保留客服欢迎语
+                messagesContainer.innerHTML = '';
+                
+                // 添加欢迎语
+                const welcomeDiv = document.createElement('div');
+                welcomeDiv.className = 'admin message';
+                welcomeDiv.innerHTML = '<div class="bubble">您好！我是客服助手，请问有什么可以帮助您的？</div><div class="message-time">' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</div>';
+                messagesContainer.appendChild(welcomeDiv);
+                
+                // 加载历史消息
+                if (data && data.length > 0) {
                     for (let msg of data) {
-                        const time = new Date(msg.created_at).toLocaleString('zh-CN');
-                        html += `<div class="mb-3">
-                            <div class="text-xs text-gray-400 mb-1">${time}</div>
-                            <div class="message-bubble user-message" style="background:#e0e7ff; padding:8px 12px; border-radius:12px; margin-bottom:4px;">
-                                <div class="text-xs text-indigo-600 font-semibold">我：</div>
-                                <div>${escapeHtml(msg.message)}</div>
-                            </div>`;
+                        const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        addMessageToUI(msg.message, true, time);
+                        
                         if (msg.reply && msg.reply.trim() !== '') {
-                            html += `<div class="message-bubble reply-message" style="background:#d1fae5; padding:8px 12px; border-radius:12px;">
-                                <div class="text-xs text-green-600 font-semibold">客服回复：</div>
-                                <div>${escapeHtml(msg.reply)}</div>
-                            </div>`;
-                        } else {
-                            html += `<div class="text-xs text-gray-400 italic ml-2">⏳ 等待客服回复...</div>`;
+                            addMessageToUI(msg.reply, false, time);
                         }
-                        html += `</div><hr class="my-2">`;
                     }
-                    messageList.innerHTML = html;
                 }
-                queryResult.style.display = 'block';
-            };
-
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                });
+                
+                scrollToBottom();
             }
+            
+            // 发送消息
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+                if (!message) return;
+                
+                // 禁用发送按钮
+                sendBtn.disabled = true;
+                
+                // 立即显示用户消息
+                addMessageToUI(message, true, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                messageInput.value = '';
+                messageInput.focus();
+                
+                // 保存到数据库
+                const { error } = await supabase
+                    .from(TABLE_NAME)
+                    .insert([{
+                        name: currentUser.name,
+                        email: currentUser.email,
+                        message: message,
+                        reply: '',
+                        is_replied: false,
+                        created_at: new Date().toISOString()
+                    }]);
+                
+                if (error) {
+                    console.error('发送失败:', error);
+                    addMessageToUI('❌ 发送失败，请重试', false, new Date().toLocaleTimeString());
+                }
+                
+                sendBtn.disabled = false;
+                scrollToBottom();
+            }
+            
+            // 实时监听新回复
+            function setupRealtimeSubscription() {
+                const channel = supabase.channel('public-livechat_messages')
+                    .on('postgres_changes', 
+                        { event: 'UPDATE', schema: 'public', table: TABLE_NAME, filter: `email=eq.${currentUser.email}` }, 
+                        (payload) => {
+                            console.log('收到新回复:', payload);
+                            const newReply = payload.new.reply;
+                            const oldReply = payload.old.reply;
+                            
+                            // 如果是新的回复（之前没有回复，现在有了）
+                            if (newReply && (!oldReply || oldReply === '')) {
+                                addMessageToUI(newReply, false, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                                scrollToBottom();
+                            }
+                        }
+                    )
+                    .subscribe();
+            }
+            
+            // 发送按钮事件
+            sendBtn.onclick = sendMessage;
+            messageInput.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+            
+            console.log('聊天系统已启动');
         })();
     </script>
 </body>
