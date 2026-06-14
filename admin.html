@@ -27,7 +27,7 @@
         @keyframes pulse { 0% { background: #fee2e2; } 100% { background: transparent; } }
         
         /* 聊天消息样式 - 管理员消息在右侧，用户消息在左侧 */
-        .chat-message { margin-bottom: 16px; display: flex; width: 100%; }
+        .chat-message { margin-bottom: 20px; display: flex; width: 100%; position: relative; }
         .chat-message.user { justify-content: flex-start; }
         .chat-message.admin { justify-content: flex-end; }
         .chat-bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 13px; word-wrap: break-word; }
@@ -38,6 +38,37 @@
         .user .message-time { text-align: left; }
         .admin .message-time { text-align: right; }
         
+        /* 回复按钮样式 */
+        .reply-to-btn {
+            position: absolute;
+            bottom: -8px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 10px;
+            color: #6b7280;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+        .chat-message.user .reply-to-btn {
+            left: 10px;
+        }
+        .chat-message.admin .reply-to-btn {
+            right: 10px;
+        }
+        .chat-message:hover .reply-to-btn {
+            opacity: 1;
+        }
+        .reply-to-btn:hover {
+            background: #f3f4f6;
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+        
         .image-preview-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
@@ -45,13 +76,40 @@
         }
         .image-preview-modal.show { display: flex; }
         .image-preview-modal img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
-        .messages-area { max-height: 450px; overflow-y: auto; background: #f8fafc; border-radius: 16px; padding: 16px; }
+        .messages-area { max-height: 500px; overflow-y: auto; background: #f8fafc; border-radius: 16px; padding: 16px; }
         .selected-image-preview { position: relative; display: inline-block; margin-top: 8px; }
         .selected-image-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
         .remove-image {
             position: absolute; top: -8px; right: -8px; background: red; color: white;
             border-radius: 50%; width: 20px; height: 20px; display: flex;
             align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
+        }
+        
+        /* 已回复标记 */
+        .replied-badge {
+            display: inline-block;
+            background: #d1fae5;
+            color: #059669;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+        
+        /* 回复历史 */
+        .reply-history {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed #e5e7eb;
+            font-size: 11px;
+        }
+        .reply-history-item {
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .reply-history-item i {
+            margin-right: 4px;
+            font-size: 9px;
         }
     </style>
 </head>
@@ -95,20 +153,41 @@
         </div>
     </div>
 
-    <!-- 回复弹窗 -->
-    <div id="replyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl w-[650px] max-w-[90%] max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+    <!-- 对话详情弹窗（只读，每条消息有回复按钮） -->
+    <div id="conversationModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-[750px] max-w-[90%] max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
             <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-2"><i class="fas fa-reply"></i><h3 class="font-bold">回复用户</h3></div>
-                <button id="closeModalBtn" class="text-white/80 hover:text-white text-2xl">&times;</button>
+                <div class="flex items-center gap-2"><i class="fas fa-comments"></i><h3 class="font-bold">对话详情</h3></div>
+                <button id="closeConversationBtn" class="text-white/80 hover:text-white text-2xl">&times;</button>
             </div>
             <div class="flex-1 overflow-auto p-5">
                 <!-- 用户信息 -->
                 <div id="userInfoPanel" class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl text-sm mb-4"></div>
-                <!-- 对话记录 -->
+                <!-- 对话记录（每条消息都有回复按钮） -->
                 <div class="messages-area" id="conversationPreview"></div>
+            </div>
+            <div class="px-5 py-4 border-t bg-gray-50 flex justify-end">
+                <button id="closeConvBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 回复消息弹窗 -->
+    <div id="replyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-[500px] max-w-[90%] shadow-2xl">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-2"><i class="fas fa-reply"></i><h3 class="font-bold">回复消息</h3></div>
+                <button id="closeReplyModalBtn" class="text-white/80 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="p-5">
+                <!-- 原消息内容 -->
+                <div class="bg-gray-100 p-3 rounded-xl mb-4">
+                    <div class="text-xs text-gray-500 mb-1">回复原消息：</div>
+                    <div id="originalMessageText" class="text-gray-700 text-sm"></div>
+                    <div id="originalMessageImage" class="mt-2"></div>
+                </div>
                 <!-- 回复输入区 -->
-                <div class="mt-4">
+                <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">回复内容</label>
                     <div class="flex gap-2 items-center bg-gray-100 rounded-xl p-2">
                         <input type="text" id="replyInput" class="flex-1 bg-transparent border-none outline-none p-2" placeholder="输入回复...按 Enter 发送" autocomplete="off">
@@ -119,10 +198,10 @@
                         <div class="selected-image-preview"><img id="replyPreviewImg"><span class="remove-image" id="removeReplyImage">×</span></div>
                     </div>
                 </div>
-            </div>
-            <div class="px-5 py-4 border-t bg-gray-50 flex justify-end gap-3">
-                <button id="cancelModalBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">取消</button>
-                <button id="submitReplyBtn" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"><i class="fas fa-paper-plane"></i> 发送回复</button>
+                <div class="flex justify-end gap-3">
+                    <button id="cancelReplyBtn" class="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button>
+                    <button id="submitReplyBtn" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 flex items-center gap-2"><i class="fas fa-paper-plane"></i> 发送回复</button>
+                </div>
             </div>
         </div>
     </div>
@@ -151,6 +230,7 @@
             let pendingDeleteEmail = null;
             let realtimeChannel = null;
             let pendingReplyImage = null;
+            let currentReplyingMessage = null; // 当前正在回复的消息对象
             
             const toastEl = document.getElementById('toastMsg');
             function showToast(msg, isError = false) { toastEl.textContent = msg; toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.8)'; toastEl.style.opacity = '1'; setTimeout(() => { toastEl.style.opacity = '0'; }, 2500); }
@@ -208,6 +288,7 @@
                 container.innerHTML = html;
             }
             
+            // 打开对话详情（每条消息都有回复按钮）
             window.openConversation = async function(email) {
                 currentUserEmail = email;
                 const { data } = await _supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
@@ -219,20 +300,25 @@
                         <div><span class="font-semibold">📱 手机：</span>${escapeHtml(userInfo.phone || '未填写')}</div>
                         <div><span class="font-semibold">📍 地址：</span>${escapeHtml(userInfo.address || '未填写')}</div>
                     `;
+                    
                     let previewHtml = '<div class="space-y-3">';
                     for (let msg of data) {
                         const time = formatTime(msg.created_at);
-                        // 用户消息在左侧
-                        previewHtml += `<div class="chat-message user">
+                        // 用户消息在左侧（带回复按钮）
+                        previewHtml += `<div class="chat-message user" data-message-id="${msg.id}">
                             <div class="chat-bubble user">
                                 <div>${escapeHtml(msg.message)}</div>
                                 ${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">` : ''}
                                 <div class="message-time">${time}</div>
                             </div>
+                            <button class="reply-to-btn" onclick="event.stopPropagation(); openReplyModalForMessage(${msg.id}, '${escapeHtml(msg.message)}', '${msg.image_url || ''}')">
+                                <i class="fas fa-reply"></i> 回复
+                            </button>
                         </div>`;
-                        // 管理员回复在右侧（如果有）
+                        
+                        // 显示所有历史回复（如果有）
                         if (msg.reply && msg.reply.trim()) {
-                            previewHtml += `<div class="chat-message admin">
+                            previewHtml += `<div class="chat-message admin" data-reply-for="${msg.id}">
                                 <div class="chat-bubble admin">
                                     <div>${escapeHtml(msg.reply)}</div>
                                     ${msg.reply_image_url ? `<img src="${escapeHtml(msg.reply_image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.reply_image_url)}')">` : ''}
@@ -243,35 +329,45 @@
                     }
                     previewHtml += '</div>';
                     document.getElementById('conversationPreview').innerHTML = previewHtml;
-                    document.getElementById('replyInput').value = '';
-                    document.getElementById('replyImagePreview').style.display = 'none';
-                    pendingReplyImage = null;
-                    document.getElementById('replyModal').classList.remove('hidden');
-                    document.getElementById('replyModal').classList.add('flex');
-                    setTimeout(() => document.getElementById('replyInput').focus(), 100);
+                    document.getElementById('conversationModal').classList.remove('hidden');
+                    document.getElementById('conversationModal').classList.add('flex');
                 }
             };
             
-            window.confirmDeleteUser = function(email) { pendingDeleteEmail = email; document.getElementById('deleteConfirmModal').classList.remove('hidden'); document.getElementById('deleteConfirmModal').classList.add('flex'); };
-            async function deleteUserConversations() { if (!pendingDeleteEmail) return; const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail); if (error) showToast('删除失败', true); else { showToast('已删除该用户所有对话'); renderConversations(); if (currentUserEmail === pendingDeleteEmail) document.getElementById('replyModal').classList.add('hidden'); } document.getElementById('deleteConfirmModal').classList.add('hidden'); pendingDeleteEmail = null; }
+            // 打开回复弹窗
+            window.openReplyModalForMessage = function(messageId, messageText, imageUrl) {
+                currentReplyingMessage = { id: messageId, text: messageText, imageUrl: imageUrl };
+                
+                // 显示原消息
+                document.getElementById('originalMessageText').innerHTML = escapeHtml(messageText);
+                if (imageUrl) {
+                    document.getElementById('originalMessageImage').innerHTML = `<img src="${escapeHtml(imageUrl)}" class="chat-image" onclick="showImagePreview('${escapeHtml(imageUrl)}')">`;
+                } else {
+                    document.getElementById('originalMessageImage').innerHTML = '';
+                }
+                
+                // 清空输入
+                document.getElementById('replyInput').value = '';
+                document.getElementById('replyImagePreview').style.display = 'none';
+                pendingReplyImage = null;
+                
+                document.getElementById('replyModal').classList.remove('hidden');
+                document.getElementById('replyModal').classList.add('flex');
+                setTimeout(() => document.getElementById('replyInput').focus(), 100);
+            };
             
+            // 提交回复 - 回复指定消息，允许多次回复
             async function submitReply() {
                 const reply = document.getElementById('replyInput').value.trim();
-                if (!reply && !pendingReplyImage) { showToast('请输入回复内容', true); return; }
-                
-                // 获取当前用户的所有消息
-                const { data: messages } = await _supabase.from(TABLE_NAME).select('*').eq('email', currentUserEmail).order('created_at', { ascending: true });
-                
-                // 找到所有未回复的消息（reply 为空或空字符串）
-                const unreadMessages = messages.filter(m => !m.reply || m.reply === '');
-                
-                if (unreadMessages.length === 0) { 
-                    showToast('所有消息都已回复过了', true); 
+                if (!reply && !pendingReplyImage) { 
+                    showToast('请输入回复内容', true); 
                     return; 
                 }
                 
-                // 回复最早的一条未回复消息（按时间顺序）
-                const targetMsg = unreadMessages[0];
+                if (!currentReplyingMessage) {
+                    showToast('请选择要回复的消息', true);
+                    return;
+                }
                 
                 let imageUrl = null;
                 if (pendingReplyImage) { 
@@ -280,29 +376,52 @@
                     document.getElementById('replyImagePreview').style.display = 'none';
                 }
                 
-                const updateData = { reply: reply || '', is_replied: true };
-                if (imageUrl) updateData.reply_image_url = imageUrl;
+                // 获取当前消息已有的回复内容
+                const { data: currentMsg } = await _supabase.from(TABLE_NAME).select('reply, reply_image_url').eq('id', currentReplyingMessage.id).single();
                 
-                const { error } = await _supabase.from(TABLE_NAME).update(updateData).eq('id', targetMsg.id);
+                let newReply = reply;
+                let newReplyImageUrl = imageUrl;
+                
+                // 如果已经有回复，追加新回复（用分隔符）
+                if (currentMsg && currentMsg.reply && currentMsg.reply.trim()) {
+                    newReply = currentMsg.reply + '\n\n---\n[新回复 ' + new Date().toLocaleString() + ']\n' + reply;
+                    if (imageUrl) {
+                        newReplyImageUrl = currentMsg.reply_image_url ? currentMsg.reply_image_url + ',' + imageUrl : imageUrl;
+                    }
+                }
+                
+                const updateData = { 
+                    reply: newReply, 
+                    is_replied: true,
+                    reply_image_url: newReplyImageUrl
+                };
+                
+                const { error } = await _supabase.from(TABLE_NAME).update(updateData).eq('id', currentReplyingMessage.id);
                 
                 if (error) { 
                     showToast('回复失败: ' + error.message, true); 
                 } else { 
                     showToast('回复成功！');
-                    // 清空输入框
-                    document.getElementById('replyInput').value = '';
-                    // 重新加载对话预览
-                    await window.openConversation(currentUserEmail);
+                    document.getElementById('replyModal').classList.add('hidden');
+                    // 刷新对话详情
+                    if (currentUserEmail) {
+                        window.openConversation(currentUserEmail);
+                    }
                     renderConversations();
                 }
             }
+            
+            window.confirmDeleteUser = function(email) { pendingDeleteEmail = email; document.getElementById('deleteConfirmModal').classList.remove('hidden'); document.getElementById('deleteConfirmModal').classList.add('flex'); };
+            async function deleteUserConversations() { if (!pendingDeleteEmail) return; const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail); if (error) showToast('删除失败', true); else { showToast('已删除该用户所有对话'); renderConversations(); if (currentUserEmail === pendingDeleteEmail) document.getElementById('conversationModal').classList.add('hidden'); } document.getElementById('deleteConfirmModal').classList.add('hidden'); pendingDeleteEmail = null; }
             
             function setupRealtime() { if (realtimeChannel) _supabase.removeChannel(realtimeChannel); realtimeChannel = _supabase.channel('admin-realtime').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => { renderConversations(); if (currentUserEmail) window.openConversation(currentUserEmail); }).subscribe(); }
             
             // 绑定事件
             document.getElementById('refreshBtn').onclick = renderConversations;
-            document.getElementById('closeModalBtn').onclick = () => document.getElementById('replyModal').classList.add('hidden');
-            document.getElementById('cancelModalBtn').onclick = () => document.getElementById('replyModal').classList.add('hidden');
+            document.getElementById('closeConversationBtn').onclick = () => document.getElementById('conversationModal').classList.add('hidden');
+            document.getElementById('closeConvBtn').onclick = () => document.getElementById('conversationModal').classList.add('hidden');
+            document.getElementById('closeReplyModalBtn').onclick = () => document.getElementById('replyModal').classList.add('hidden');
+            document.getElementById('cancelReplyBtn').onclick = () => document.getElementById('replyModal').classList.add('hidden');
             document.getElementById('submitReplyBtn').onclick = submitReply;
             document.getElementById('cancelDeleteBtn').onclick = () => document.getElementById('deleteConfirmModal').classList.add('hidden');
             document.getElementById('confirmDeleteBtn').onclick = deleteUserConversations;
