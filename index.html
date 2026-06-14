@@ -7,10 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #ffffff; }
+        body { font-family: system-ui, sans-serif; background: #ffffff; }
         
         .gradient-bg { background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0d1117 100%); }
         
@@ -23,7 +22,6 @@
         .chat-header {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; }
         .back-btn:hover { background: rgba(255,255,255,0.2); }
@@ -48,38 +46,13 @@
             background: white; color: #1f2937; border-bottom-left-radius: 4px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .message-image { max-width: 200px; max-height: 200px; border-radius: 12px; cursor: pointer; margin-top: 4px; }
         .message-time { font-size: 10px; margin-top: 4px; color: #9ca3af; }
         .user .message-time { text-align: right; }
         
-        /* 回复列表样式 */
-        .replies-container {
-            margin-top: 8px;
-            margin-right: 20px;
-            border-right: 2px solid #e5e7eb;
-            padding-right: 12px;
-        }
-        .reply-item {
-            margin-top: 8px;
-            display: flex;
-            justify-content: flex-start;
-        }
-        .reply-bubble {
-            background: white;
-            color: #1f2937;
-            padding: 8px 12px;
-            border-radius: 18px;
-            font-size: 12px;
-            max-width: 80%;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        .reply-time {
-            font-size: 9px;
-            color: #9ca3af;
-            margin-top: 2px;
-        }
-        .reply-image { max-width: 100px; max-height: 100px; border-radius: 8px; margin-top: 4px; cursor: pointer; }
+        .replies { margin-top: 8px; margin-right: 20px; border-right: 2px solid #e5e7eb; padding-right: 12px; }
+        .reply-item { margin-top: 8px; display: flex; justify-content: flex-start; }
+        .reply-bubble { background: white; color: #1f2937; padding: 8px 12px; border-radius: 18px; font-size: 12px; max-width: 80%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .reply-time { font-size: 9px; color: #9ca3af; margin-top: 2px; }
         
         .input-area {
             background: white; border-top: 1px solid #e5e7eb;
@@ -91,16 +64,12 @@
             border: 1px solid #e5e7eb;
         }
         .input-wrapper input { flex: 1; background: transparent; border: none; padding: 10px 0; outline: none; font-size: 15px; }
-        .attach-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; padding: 8px; border-radius: 50%; }
-        .attach-btn:hover { background: #e5e7eb; color: #2563eb; }
         .send-btn {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
             border: none; color: white; width: 44px; height: 44px; border-radius: 50%;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s;
         }
         .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
-        .send-btn:disabled { background: #9ca3af; cursor: not-allowed; }
         
         .info-modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -110,34 +79,22 @@
         .info-card {
             background: white; border-radius: 24px; padding: 32px;
             width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-        }
-        .info-card h3 {
-            font-size: 24px; font-weight: 700;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
         }
         .info-card input, .info-card textarea {
             width: 100%; border: 1px solid #e5e7eb; border-radius: 12px;
             padding: 12px 16px; margin-bottom: 16px; outline: none; font-size: 15px;
-            font-family: inherit;
         }
-        .info-card textarea { resize: vertical; min-height: 80px; }
-        .info-card input:focus, .info-card textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
         .start-btn {
             width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white; border: none; padding: 14px; border-radius: 12px;
-            font-weight: 600; cursor: pointer; transition: transform 0.2s;
+            font-weight: 600; cursor: pointer;
         }
-        .start-btn:hover { transform: translateY(-1px); }
         
         .landing-btn {
             position: fixed; bottom: 24px; right: 24px;
             width: 60px; height: 60px; background: linear-gradient(135deg, #2563eb, #7c3aed);
             color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: 0 4px 20px rgba(37,99,235,0.4); z-index: 9999;
-            transition: transform 0.2s;
         }
         .landing-btn:hover { transform: scale(1.1); }
         
@@ -146,30 +103,10 @@
             background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
             border-radius: 40px; font-size: 14px; z-index: 10002;
             pointer-events: none; opacity: 0; transition: opacity 0.2s;
-            backdrop-filter: blur(8px);
         }
-        
-        .messages-container::-webkit-scrollbar { width: 4px; }
-        .messages-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-        .messages-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         
         .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: #374151; }
-        .required-star { color: #ef4444; margin-left: 2px; }
-        
-        .image-preview-modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
-            z-index: 20000; cursor: pointer;
-        }
-        .image-preview-modal.show { display: flex; }
-        .image-preview-modal img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
-        .selected-image-preview { position: relative; display: inline-block; margin-top: 8px; }
-        .selected-image-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
-        .remove-image {
-            position: absolute; top: -8px; right: -8px; background: red; color: white;
-            border-radius: 50%; width: 20px; height: 20px; display: flex;
-            align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
-        }
+        .required-star { color: #ef4444; }
     </style>
 </head>
 <body>
@@ -224,13 +161,8 @@
         <div class="input-area">
             <div class="input-wrapper">
                 <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
-                <button class="attach-btn" id="attachBtn"><i class="fas fa-image"></i></button>
-                <input type="file" id="imageInput" accept="image/*" style="display: none;">
             </div>
             <button class="send-btn" id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
-        </div>
-        <div id="selectedImagePreview" class="px-4 pb-2" style="display: none;">
-            <div class="selected-image-preview"><img id="previewSelectedImage"><span class="remove-image" id="removeSelectedImage">×</span></div>
         </div>
     </div>
 
@@ -250,7 +182,6 @@
         </div>
     </div>
     
-    <div id="imagePreviewModal" class="image-preview-modal"><img id="previewImage" src=""><div class="absolute top-4 right-4 text-white text-2xl cursor-pointer" onclick="closeImagePreview()">×</div></div>
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
@@ -264,7 +195,6 @@
             
             let currentUser = { id: null, name: null, email: null, phone: null, address: null };
             let realtimeChannel = null;
-            let pendingImageFile = null;
             
             const userInfoModal = document.getElementById('userInfoModal');
             const userInfoForm = document.getElementById('userInfoForm');
@@ -272,8 +202,6 @@
             const messagesContainer = document.getElementById('messagesContainer');
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendMessageBtn');
-            const attachBtn = document.getElementById('attachBtn');
-            const imageInput = document.getElementById('imageInput');
             const userNameInput = document.getElementById('userNameInput');
             const userEmailInput = document.getElementById('userEmailInput');
             const userPhoneInput = document.getElementById('userPhoneInput');
@@ -283,11 +211,6 @@
             const floatingChatBtn = document.getElementById('floatingChatBtn');
             const closeChatInterface = document.getElementById('closeChatInterface');
             const toastEl = document.getElementById('toastMsg');
-            const selectedImagePreview = document.getElementById('selectedImagePreview');
-            const previewSelectedImage = document.getElementById('previewSelectedImage');
-            const removeSelectedImage = document.getElementById('removeSelectedImage');
-            const imagePreviewModal = document.getElementById('imagePreviewModal');
-            const previewImage = document.getElementById('previewImage');
             
             function showToast(msg, isError = false) {
                 toastEl.textContent = msg;
@@ -296,26 +219,9 @@
                 setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
             
-            window.showImagePreview = function(url) {
-                previewImage.src = url;
-                imagePreviewModal.classList.add('show');
-            };
-            
-            window.closeImagePreview = function() {
-                imagePreviewModal.classList.remove('show');
-            };
-            
             function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
             
             function scrollToBottom() { setTimeout(() => { if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 100); }
-            
-            async function uploadImage(file) {
-                const fileName = `${Date.now()}_${file.name}`;
-                const { error } = await _supabase.storage.from('chat_images').upload(fileName, file);
-                if (error) { console.error('上传失败:', error); return null; }
-                const { data } = _supabase.storage.from('chat_images').getPublicUrl(fileName);
-                return data.publicUrl;
-            }
             
             function formatDateTime(dateStr) {
                 if (!dateStr) return '';
@@ -331,30 +237,10 @@
                 return { messages, replies: replies || [] };
             }
             
-            function addMessageToUI(message, isUser, time, imageUrl = null, messageId = null) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = isUser ? 'message user' : 'message admin';
-                if (messageId) messageDiv.setAttribute('data-msg-id', messageId);
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'bubble';
-                let content = '';
-                if (imageUrl) content += `<img src="${escapeHtml(imageUrl)}" class="message-image" onclick="showImagePreview('${escapeHtml(imageUrl)}')">`;
-                if (message) content += `<div>${escapeHtml(message).replace(/\n/g, '<br>')}</div>`;
-                bubbleDiv.innerHTML = content;
-                const timeDiv = document.createElement('div');
-                timeDiv.className = 'message-time';
-                timeDiv.innerText = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                messageDiv.appendChild(bubbleDiv);
-                messageDiv.appendChild(timeDiv);
-                messagesContainer.appendChild(messageDiv);
-                scrollToBottom();
-            }
-            
             async function loadUserMessages() {
                 if (!currentUser.email) return;
                 const { messages, replies } = await loadMessagesAndReplies();
                 
-                // 按消息ID组织回复
                 const repliesByMsg = {};
                 for (let r of replies) {
                     if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = [];
@@ -362,7 +248,12 @@
                 }
                 
                 messagesContainer.innerHTML = '';
-                addMessageToUI(`您好 ${currentUser.name || '用户'}！我是CJ客服助手，请问有什么可以帮助您的？`, false, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                
+                // 欢迎语
+                const welcomeDiv = document.createElement('div');
+                welcomeDiv.className = 'message admin';
+                welcomeDiv.innerHTML = `<div class="bubble">您好 ${currentUser.name || '用户'}！我是CJ客服助手，请问有什么可以帮助您的？</div><div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
+                messagesContainer.appendChild(welcomeDiv);
                 
                 for (let msg of messages) {
                     const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -371,22 +262,16 @@
                     const userMsgDiv = document.createElement('div');
                     userMsgDiv.className = 'message user';
                     userMsgDiv.setAttribute('data-msg-id', msg.id);
-                    let userContent = '';
-                    if (msg.image_url) userContent += `<img src="${escapeHtml(msg.image_url)}" class="message-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">`;
-                    if (msg.message) userContent += `<div>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</div>`;
-                    userMsgDiv.innerHTML = `<div class="bubble">${userContent}</div><div class="message-time">${time}</div>`;
+                    userMsgDiv.innerHTML = `<div class="bubble">${escapeHtml(msg.message)}</div><div class="message-time">${time}</div>`;
                     messagesContainer.appendChild(userMsgDiv);
                     
                     // 显示所有回复
                     if (repliesByMsg[msg.id] && repliesByMsg[msg.id].length > 0) {
                         const repliesDiv = document.createElement('div');
-                        repliesDiv.className = 'replies-container';
+                        repliesDiv.className = 'replies';
                         for (let reply of repliesByMsg[msg.id]) {
                             const replyTime = formatDateTime(reply.created_at);
-                            let replyContent = '';
-                            if (reply.reply_image_url) replyContent += `<img src="${escapeHtml(reply.reply_image_url)}" class="reply-image" onclick="showImagePreview('${escapeHtml(reply.reply_image_url)}')">`;
-                            if (reply.reply) replyContent += `<div>${escapeHtml(reply.reply).replace(/\n/g, '<br>')}</div>`;
-                            repliesDiv.innerHTML += `<div class="reply-item"><div class="reply-bubble">${replyContent}<div class="reply-time">${replyTime}</div></div></div>`;
+                            repliesDiv.innerHTML += `<div class="reply-item"><div class="reply-bubble">${escapeHtml(reply.reply)}<div class="reply-time">${replyTime}</div></div></div>`;
                         }
                         messagesContainer.appendChild(repliesDiv);
                     }
@@ -396,39 +281,36 @@
             
             async function sendMessage() {
                 const message = messageInput.value.trim();
-                if (!message && !pendingImageFile) return;
+                if (!message) return;
                 sendBtn.disabled = true;
                 const tempTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                let imageUrl = null;
-                if (pendingImageFile) {
-                    imageUrl = await uploadImage(pendingImageFile);
-                    pendingImageFile = null;
-                    selectedImagePreview.style.display = 'none';
-                }
-                addMessageToUI(message, true, tempTime, imageUrl);
+                
+                // 临时显示
+                const tempDiv = document.createElement('div');
+                tempDiv.className = 'message user';
+                tempDiv.innerHTML = `<div class="bubble">${escapeHtml(message)}</div><div class="message-time">${tempTime}</div>`;
+                messagesContainer.appendChild(tempDiv);
+                scrollToBottom();
                 messageInput.value = '';
                 messageInput.focus();
                 
-                const insertData = {
+                const { error } = await _supabase.from(TABLE_NAME).insert([{
                     name: currentUser.name,
                     email: currentUser.email,
                     phone: currentUser.phone,
                     address: currentUser.address,
-                    message: message || '',
+                    message: message,
                     created_at: new Date().toISOString()
-                };
-                if (imageUrl) insertData.image_url = imageUrl;
+                }]);
                 
-                const { error } = await _supabase.from(TABLE_NAME).insert([insertData]);
                 if (error) {
                     console.error(error);
                     showToast('发送失败', true);
+                    tempDiv.remove();
                 } else {
                     showToast('已发送');
                 }
                 sendBtn.disabled = false;
-                scrollToBottom();
-                // 刷新消息
                 setTimeout(() => loadUserMessages(), 500);
             }
             
@@ -440,7 +322,6 @@
                         loadUserMessages();
                     })
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: REPLIES_TABLE }, async () => {
-                        // 检查回复是否属于当前用户
                         const { messages } = await loadMessagesAndReplies();
                         if (messages.length > 0) {
                             console.log('新回复');
@@ -492,25 +373,6 @@
                 }
             }
             
-            attachBtn.onclick = () => imageInput.click();
-            imageInput.onchange = (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    pendingImageFile = e.target.files[0];
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        previewSelectedImage.src = ev.target.result;
-                        selectedImagePreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(pendingImageFile);
-                    showToast('已选择图片，发送消息时将一起发送');
-                }
-            };
-            removeSelectedImage.onclick = () => {
-                pendingImageFile = null;
-                selectedImagePreview.style.display = 'none';
-                imageInput.value = '';
-            };
-            
             openChatNav.onclick = openChat;
             openChatHero.onclick = openChat;
             floatingChatBtn.onclick = openChat;
@@ -518,7 +380,7 @@
             sendBtn.onclick = sendMessage;
             messageInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
             
-            console.log('前端已启动 - 支持无限回复');
+            console.log('前端已启动 - 实时模式');
         })();
     </script>
 </body>

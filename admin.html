@@ -14,7 +14,6 @@
         .delete-btn { opacity: 0; transition: opacity 0.2s; color: #ef4444; background: none; border: none; cursor: pointer; font-size: 14px; }
         .user-item:hover .delete-btn { opacity: 1; }
         .has-unread { background: #fef2f2; }
-        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; }
         
         .chat-message { margin-bottom: 16px; display: flex; }
         .chat-message.user { justify-content: flex-start; }
@@ -49,14 +48,16 @@
         
         .stat-card { background: white; border-radius: 12px; padding: 16px; }
         .stat-number { font-size: 28px; font-weight: bold; }
+        .online-dot { display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-left: 8px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
     <div class="bg-indigo-800 text-white px-6 py-4">
-        <div class="container mx-auto flex justify-between">
-            <span class="font-bold text-xl">CJ 客服后台</span>
-            <span class="text-sm">直接输入回复 → Enter 发送</span>
+        <div class="container mx-auto flex justify-between items-center">
+            <div><span class="font-bold text-xl">CJ 客服后台</span><span class="online-dot"></span></div>
+            <span class="text-sm">实时模式 · 直接输入回复 → Enter 发送</span>
         </div>
     </div>
 
@@ -70,8 +71,8 @@
 
         <div class="bg-white rounded-lg overflow-hidden shadow">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <h2 class="font-bold">用户列表</h2>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm">刷新</button>
+                <h2 class="font-bold">用户列表 <span class="text-xs text-green-600 ml-2">● 实时更新</span></h2>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm">手动刷新</button>
             </div>
             <div id="userList"></div>
         </div>
@@ -86,7 +87,7 @@
             </div>
             <div class="modal-body" id="chatMessages"></div>
             <div class="modal-footer">
-                <input type="text" id="msgInput" placeholder="输入回复... 按 Enter 发送">
+                <input type="text" id="msgInput" placeholder="输入回复... 按 Enter 发送" autocomplete="off">
                 <button id="sendBtn">发送</button>
             </div>
         </div>
@@ -104,7 +105,6 @@
     <div id="toastMsg" class="toast"></div>
 
     <script>
-        // 使用不同的变量名避免冲突
         (function() {
             const SB_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
@@ -113,6 +113,7 @@
             
             let currentUserEmail = null;
             let deleteTargetEmail = null;
+            let realtimeChannel = null;
             
             function showToast(msg) {
                 const toast = document.getElementById('toastMsg');
@@ -139,7 +140,6 @@
                 const { data: messages, error } = await sbClient.from('livechat_messages').select('*').order('created_at', { ascending: true });
                 if (error) { console.error(error); return; }
                 
-                // 获取回复数
                 const { data: replies } = await sbClient.from('message_replies').select('*');
                 const replyCount = {};
                 if (replies) {
@@ -148,7 +148,6 @@
                     }
                 }
                 
-                // 按邮箱分组
                 const groups = {};
                 for (let msg of messages || []) {
                     if (!groups[msg.email]) {
@@ -163,7 +162,6 @@
                     groups[msg.email].messages.push(msg);
                 }
                 
-                // 统计
                 const totalMessages = messages?.length || 0;
                 const unreadCount = (messages || []).filter(m => !replyCount[m.id] || replyCount[m.id] === 0).length;
                 document.getElementById('totalCount').innerText = totalMessages;
@@ -220,6 +218,14 @@
             
             window.openUserChat = async function(email) {
                 currentUserEmail = email;
+                await loadChatMessages(email);
+                document.getElementById('chatModal').classList.add('show');
+                const msgArea = document.getElementById('chatMessages');
+                msgArea.scrollTop = msgArea.scrollHeight;
+                document.getElementById('msgInput').focus();
+            };
+            
+            async function loadChatMessages(email) {
                 const { data: messages } = await sbClient.from('livechat_messages').select('*').eq('email', email).order('created_at', { ascending: true });
                 if (!messages || messages.length === 0) return;
                 
@@ -264,11 +270,7 @@
                     }
                 }
                 document.getElementById('chatMessages').innerHTML = chatHtml;
-                document.getElementById('chatModal').classList.add('show');
-                const msgArea = document.getElementById('chatMessages');
-                msgArea.scrollTop = msgArea.scrollHeight;
-                document.getElementById('msgInput').focus();
-            };
+            }
             
             async function sendMessage() {
                 const msg = document.getElementById('msgInput').value.trim();
@@ -290,9 +292,37 @@
                 } else {
                     showToast('已发送');
                     document.getElementById('msgInput').value = '';
-                    window.openUserChat(currentUserEmail);
+                    await loadChatMessages(currentUserEmail);
                     loadUsers();
+                    const msgArea = document.getElementById('chatMessages');
+                    msgArea.scrollTop = msgArea.scrollHeight;
                 }
+            }
+            
+            // 设置实时订阅
+            function setupRealtime() {
+                if (realtimeChannel) {
+                    sbClient.removeChannel(realtimeChannel);
+                }
+                
+                realtimeChannel = sbClient.channel('admin-realtime')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, () => {
+                        console.log('实时: 消息表有变化');
+                        loadUsers();
+                        if (currentUserEmail) loadChatMessages(currentUserEmail);
+                    })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, () => {
+                        console.log('实时: 回复表有变化');
+                        loadUsers();
+                        if (currentUserEmail) {
+                            loadChatMessages(currentUserEmail);
+                            const msgArea = document.getElementById('chatMessages');
+                            if (msgArea) msgArea.scrollTop = msgArea.scrollHeight;
+                        }
+                    })
+                    .subscribe((status) => {
+                        console.log('实时订阅状态:', status);
+                    });
             }
             
             // 事件绑定
@@ -309,16 +339,9 @@
                 };
             }
             
-            // 实时订阅
-            const channel = sbClient.channel('admin-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, () => loadUsers())
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, () => {
-                    loadUsers();
-                    if (currentUserEmail) window.openUserChat(currentUserEmail);
-                })
-                .subscribe();
-            
+            // 启动
             loadUsers();
+            setupRealtime();
         })();
     </script>
 </body>
