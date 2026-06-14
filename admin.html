@@ -16,218 +16,86 @@
                 <i class="fas fa-tachometer-alt text-xl"></i>
                 <span class="font-bold text-xl">客服后台管理系统</span>
             </div>
-            <div class="text-sm flex items-center gap-2">
-                <i class="fas fa-user-shield"></i>
-                <span>管理员</span>
-            </div>
+            <div class="text-sm"><i class="fas fa-user-shield mr-1"></i>管理员</div>
         </div>
     </nav>
 
     <div class="container mx-auto px-4 py-6">
-        <!-- 统计卡片 -->
         <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
-                <div class="flex items-center">
-                    <i class="fas fa-envelope text-3xl text-indigo-500 mr-3"></i>
-                    <div>
-                        <p class="text-gray-500 text-sm">总消息数</p>
-                        <p id="totalCount" class="text-2xl font-bold">0</p>
-                    </div>
-                </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center"><i class="fas fa-envelope text-3xl text-indigo-500 mr-3"></i><div><p class="text-gray-500 text-sm">总消息数</p><p id="totalCount" class="text-2xl font-bold">0</p></div></div>
             </div>
-            <div class="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
-                <div class="flex items-center">
-                    <i class="fas fa-clock text-3xl text-yellow-500 mr-3"></i>
-                    <div>
-                        <p class="text-gray-500 text-sm">待回复</p>
-                        <p id="unreadCount" class="text-2xl font-bold text-red-600">0</p>
-                    </div>
-                </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center"><i class="fas fa-clock text-3xl text-yellow-500 mr-3"></i><div><p class="text-gray-500 text-sm">待回复</p><p id="unreadCount" class="text-2xl font-bold text-red-600">0</p></div></div>
             </div>
-            <div class="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
-                <div class="flex items-center">
-                    <i class="fas fa-check-circle text-3xl text-green-500 mr-3"></i>
-                    <div>
-                        <p class="text-gray-500 text-sm">已回复</p>
-                        <p id="repliedCount" class="text-2xl font-bold">0</p>
-                    </div>
-                </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center"><i class="fas fa-check-circle text-3xl text-green-500 mr-3"></i><div><p class="text-gray-500 text-sm">已回复</p><p id="repliedCount" class="text-2xl font-bold">0</p></div></div>
             </div>
         </div>
 
-        <!-- 消息列表 -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
                 <h2 class="font-bold text-lg"><i class="fas fa-list mr-2"></i>用户消息列表</h2>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600 transition flex items-center gap-1">
-                    <i class="fas fa-sync-alt"></i>刷新
-                </button>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600"><i class="fas fa-sync-alt mr-1"></i>刷新</button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">状态</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">姓名</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">邮箱</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">用户消息</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">客服回复</th>
-                            <th class="px-4 py-3 text-left text-sm font-semibold">操作</th>
-                        </tr>
+                        <tr><th class="px-4 py-3 text-left">状态</th><th class="px-4 py-3 text-left">姓名</th><th class="px-4 py-3 text-left">邮箱</th><th class="px-4 py-3 text-left">用户消息</th><th class="px-4 py-3 text-left">客服回复</th><th class="px-4 py-3 text-left">操作</th></tr>
                     </thead>
-                    <tbody id="messagesTable">
-                        <tr><td colspan="6" class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>加载中...</td></tr>
-                    </tbody>
-                </table>
+                    <tbody id="messagesTable"><tr><td colspan="6" class="text-center py-8 text-gray-400">加载中...</td></tr></tbody>
+                20架
             </div>
         </div>
     </div>
 
-    <!-- 回复弹窗 -->
     <div id="replyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl w-96 p-5 shadow-2xl">
-            <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
-                <i class="fas fa-reply text-indigo-500"></i>回复用户
-            </h3>
-            <textarea id="replyContent" rows="4" class="w-full border border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="输入回复内容..."></textarea>
-            <div class="flex justify-end gap-2">
-                <button id="closeModalBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">取消</button>
-                <button id="submitReplyBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">发送回复</button>
-            </div>
+        <div class="bg-white rounded-xl w-96 p-5">
+            <h3 class="font-bold text-lg mb-3">回复用户</h3>
+            <textarea id="replyContent" rows="4" class="w-full border rounded-lg p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="输入回复内容..."></textarea>
+            <div class="flex justify-end gap-2"><button id="closeModalBtn" class="px-4 py-2 border rounded-lg">取消</button><button id="submitReplyBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">发送回复</button></div>
         </div>
     </div>
 
     <script>
-        // Supabase 配置
         const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const TABLE_NAME = 'livechat_messages';
         let currentMessageId = null;
-        let currentRowElement = null;
 
         async function loadMessages() {
-            const { data, error } = await supabase
-                .from(TABLE_NAME)
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error('加载失败:', error);
-                return [];
-            }
+            const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
+            if (error) return [];
             return data || [];
         }
 
-        function escapeHtml(str) { 
-            if (!str) return ''; 
-            return str.replace(/[&<>]/g, function(m) { 
-                if (m === '&') return '&amp;'; 
-                if (m === '<') return '&lt;'; 
-                if (m === '>') return '&gt;'; 
-                return m; 
-            }); 
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            return date.toLocaleString('zh-CN');
-        }
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
 
         async function renderTable() {
             const messages = await loadMessages();
             const tbody = document.getElementById('messagesTable');
-            
-            if (messages.length === 0) { 
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">暂无消息</td></tr>'; 
-                document.getElementById('totalCount').innerText = '0'; 
-                document.getElementById('unreadCount').innerText = '0'; 
-                document.getElementById('repliedCount').innerText = '0'; 
-                return; 
-            }
-            
-            let total = messages.length; 
+            if (messages.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">暂无消息</td></tr>'; updateStats(0, 0); return; }
             let unread = messages.filter(m => !m.reply || m.reply === '').length;
-            
-            document.getElementById('totalCount').innerText = total; 
-            document.getElementById('unreadCount').innerText = unread; 
-            document.getElementById('repliedCount').innerText = total - unread;
-            
-            tbody.innerHTML = messages.map(msg => { 
-                const hasReply = msg.reply && msg.reply.trim() !== ''; 
-                const createdAt = formatDate(msg.created_at);
-                return `<tr class="border-b hover:bg-gray-50 ${!hasReply ? 'bg-yellow-50' : ''}">
-                    <td class="px-4 py-3">
-                        ${!hasReply ? '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium"><i class="fas fa-circle mr-1" style="font-size: 6px;"></i>待回复</span>' : '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium"><i class="fas fa-check mr-1"></i>已回复</span>'}
-                        <div class="text-xs text-gray-400 mt-1">${createdAt}</div>
-                    </td>
-                    <td class="px-4 py-3 font-medium">${escapeHtml(msg.name)}</td>
-                    <td class="px-4 py-3 text-sm">${escapeHtml(msg.email)}</td>
-                    <td class="px-4 py-3 text-sm max-w-xs break-words bg-gray-50 rounded">${escapeHtml(msg.message)}</td>
-                    <td class="px-4 py-3 text-sm max-w-xs break-words">
-                        ${hasReply ? '<div class="bg-indigo-50 p-2 rounded">' + escapeHtml(msg.reply) + '</div>' : '<span class="text-gray-400 italic">未回复</span>'}
-                    </td>
-                    <td class="px-4 py-3">
-                        <button onclick="openReplyModal(\'${msg.id}\')" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition flex items-center gap-1">
-                            <i class="fas fa-reply"></i>${hasReply ? '重新回复' : '回复'}
-                        </button>
-                    </td>
-                </tr>`; 
+            updateStats(messages.length, unread);
+            tbody.innerHTML = messages.map(msg => {
+                const hasReply = msg.reply && msg.reply.trim() !== '';
+                return `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3">${!hasReply ? '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs">待回复</span>' : '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">已回复</span>}'}<td class="px-4 py-3">${escapeHtml(msg.name)}</td><td class="px-4 py-3">${escapeHtml(msg.email)}</td><td class="px-4 py-3 max-w-xs break-words">${escapeHtml(msg.message)}</td><td class="px-4 py-3 max-w-xs break-words">${hasReply ? escapeHtml(msg.reply) : '<span class="text-gray-400">未回复</span>'}</td><td class="px-4 py-3"><button onclick="openReplyModal(\'${msg.id}\')" class="text-indigo-600 hover:text-indigo-800"><i class="fas fa-reply mr-1"></i>${hasReply ? '重新回复' : '回复'}</button></td></tr>`;
             }).join('');
         }
 
-        window.openReplyModal = (id) => { 
-            currentMessageId = id; 
-            document.getElementById('replyContent').value = ''; 
-            document.getElementById('replyModal').classList.remove('hidden'); 
-            document.getElementById('replyModal').classList.add('flex'); 
-        };
+        function updateStats(total, unread) { document.getElementById('totalCount').innerText = total; document.getElementById('unreadCount').innerText = unread; document.getElementById('repliedCount').innerText = total - unread; }
+
+        window.openReplyModal = (id) => { currentMessageId = id; document.getElementById('replyContent').value = ''; document.getElementById('replyModal').classList.remove('hidden'); document.getElementById('replyModal').classList.add('flex'); };
         
-        async function submitReply() { 
-            const reply = document.getElementById('replyContent').value.trim(); 
-            if (!reply) { 
-                alert('请输入回复内容'); 
-                return; 
-            } 
-            
-            const { error } = await supabase
-                .from(TABLE_NAME)
-                .update({ reply: reply, is_replied: true })
-                .eq('id', currentMessageId); 
-            
-            if (error) {
-                alert('回复失败：' + error.message);
-            } else { 
-                alert('回复成功！'); 
-                document.getElementById('replyModal').classList.add('hidden'); 
-                document.getElementById('replyModal').classList.remove('flex'); 
-                renderTable(); 
-            } 
-        }
+        async function submitReply() { const reply = document.getElementById('replyContent').value.trim(); if (!reply) return alert('请输入回复内容'); const { error } = await supabase.from(TABLE_NAME).update({ reply: reply, is_replied: true }).eq('id', currentMessageId); if (error) alert('回复失败'); else { alert('回复成功'); document.getElementById('replyModal').classList.add('hidden'); renderTable(); } }
         
-        document.getElementById('refreshBtn').onclick = () => renderTable(); 
-        document.getElementById('closeModalBtn').onclick = () => { 
-            document.getElementById('replyModal').classList.add('hidden'); 
-            document.getElementById('replyModal').classList.remove('flex'); 
-        }; 
+        document.getElementById('refreshBtn').onclick = renderTable;
+        document.getElementById('closeModalBtn').onclick = () => { document.getElementById('replyModal').classList.add('hidden'); document.getElementById('replyModal').classList.remove('flex'); };
         document.getElementById('submitReplyBtn').onclick = submitReply;
-        
-        // 初始加载
         renderTable();
-        
-        // 实时监听新消息
-        const channel = supabase.channel('public-livechat_messages')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: TABLE_NAME }, () => {
-                console.log('新消息到达，刷新列表');
-                renderTable();
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: TABLE_NAME }, () => {
-                console.log('消息已更新，刷新列表');
-                renderTable();
-            })
-            .subscribe();
+        supabase.channel('public:messages').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => renderTable()).subscribe();
     </script>
 </body>
 </html>
