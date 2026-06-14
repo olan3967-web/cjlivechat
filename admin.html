@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CJ客服后台 | 正常聊天</title>
+    <title>CJ客服后台</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: system-ui, sans-serif; background: #f3f4f6; }
-        
-        .conversation-item { cursor: pointer; border-bottom: 1px solid #e5e7eb; padding: 16px; transition: background 0.2s; }
-        .conversation-item:hover { background: #f9fafb; }
-        .delete-btn { opacity: 0; transition: opacity 0.2s; }
-        .conversation-item:hover .delete-btn { opacity: 1; }
+        .user-item { cursor: pointer; border-bottom: 1px solid #e5e7eb; padding: 16px; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .user-item:hover { background: #f9fafb; }
+        .delete-btn { opacity: 0; transition: opacity 0.2s; color: #ef4444; background: none; border: none; cursor: pointer; font-size: 14px; }
+        .user-item:hover .delete-btn { opacity: 1; }
         .has-unread { background: #fef2f2; }
+        .badge { background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; }
         
-        /* 聊天界面样式 */
         .chat-message { margin-bottom: 16px; display: flex; }
         .chat-message.user { justify-content: flex-start; }
         .chat-message.admin { justify-content: flex-end; }
@@ -26,235 +24,302 @@
         .bubble.admin { background: #2563eb; color: white; }
         .msg-time { font-size: 10px; margin-top: 4px; opacity: 0.7; }
         
-        .messages-area { height: 450px; overflow-y: auto; background: #f8fafc; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
-        
-        .input-area { display: flex; gap: 12px; align-items: center; background: white; padding: 16px; border-radius: 16px; }
-        .input-area input { flex: 1; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 28px; outline: none; font-size: 14px; }
-        .input-area input:focus { border-color: #2563eb; }
-        .send-btn { background: #2563eb; border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; }
-        
-        .toast-msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; opacity: 0; transition: opacity 0.2s; z-index: 1000; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal.show { display: flex; }
-        .modal-content { background: white; border-radius: 24px; padding: 24px; width: 400px; max-width: 90%; }
-        .modal-content input, .modal-content textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 12px; }
-        .modal-content button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 12px; cursor: pointer; }
-        
-        .chat-image { max-width: 150px; max-height: 150px; border-radius: 12px; margin-top: 4px; cursor: pointer; }
-        .image-preview { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .image-preview.show { display: flex; }
-        .image-preview img { max-width: 90%; max-height: 90%; }
-        
         .replies { margin-top: 8px; margin-left: 20px; border-left: 2px solid #e5e7eb; padding-left: 12px; }
         .reply-item { margin-top: 8px; display: flex; justify-content: flex-end; }
         .reply-bubble { background: #2563eb; color: white; padding: 8px 12px; border-radius: 18px; font-size: 12px; max-width: 80%; }
         .reply-time { font-size: 9px; opacity: 0.7; margin-top: 2px; text-align: right; }
-        .reply-image { max-width: 100px; max-height: 100px; border-radius: 8px; margin-top: 4px; cursor: pointer; }
+        
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; border-radius: 24px; width: 500px; max-width: 90%; height: 70vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { background: #4f46e5; color: white; padding: 16px 20px; display: flex; justify-content: space-between; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 16px; background: #f8fafc; }
+        .modal-footer { padding: 12px 16px; background: white; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; }
+        .modal-footer input { flex: 1; padding: 10px 16px; border: 1px solid #e5e7eb; border-radius: 24px; outline: none; }
+        .modal-footer button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 24px; cursor: pointer; }
+        .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; opacity: 0; transition: opacity 0.2s; z-index: 1001; }
+        .delete-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1002; }
+        .delete-modal.show { display: flex; }
+        .delete-box { background: white; border-radius: 16px; padding: 24px; width: 300px; text-align: center; }
+        .delete-box button { margin-top: 16px; padding: 8px 20px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; }
+        .confirm-delete { background: #ef4444; color: white; }
+        .cancel-delete { background: #e5e7eb; }
+        
+        .stat-card { background: white; border-radius: 12px; padding: 16px; }
+        .stat-number { font-size: 28px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <nav class="bg-indigo-800 text-white px-6 py-4">
-        <div class="container mx-auto flex justify-between items-center">
+    <div class="bg-indigo-800 text-white px-6 py-4">
+        <div class="container mx-auto flex justify-between">
             <span class="font-bold text-xl">CJ 客服后台</span>
-            <span class="text-sm">正常聊天 · 直接发送</span>
-        </div>
-    </nav>
-
-    <div class="container mx-auto px-4 py-6">
-        <div class="grid grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg p-4"><p class="text-gray-500 text-sm">总消息</p><p id="totalCount" class="text-2xl font-bold">0</p></div>
-            <div class="bg-white rounded-lg p-4"><p class="text-gray-500 text-sm">待回复</p><p id="unreadCount" class="text-2xl font-bold text-red-600">0</p></div>
-            <div class="bg-white rounded-lg p-4"><p class="text-gray-500 text-sm">已回复</p><p id="repliedCount" class="text-2xl font-bold text-green-600">0</p></div>
-            <div class="bg-white rounded-lg p-4"><p class="text-gray-500 text-sm">用户数</p><p id="userCount" class="text-2xl font-bold">0</p></div>
-        </div>
-
-        <div class="bg-white rounded-lg overflow-hidden">
-            <div class="px-6 py-4 border-b flex justify-between">
-                <h2 class="font-bold">用户列表</h2>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm">刷新</button>
-            </div>
-            <div id="conversationsContainer" class="divide-y"><div class="text-center py-8">加载中...</div></div>
+            <span class="text-sm">直接输入回复 → Enter 发送</span>
         </div>
     </div>
 
-    <!-- 聊天弹窗 -->
-    <div id="chatModal" class="modal">
-        <div class="bg-white rounded-2xl w-[700px] max-w-[90%] h-[80vh] flex flex-col overflow-hidden">
-            <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between">
-                <div><span id="userName"></span><span id="userEmail" class="text-sm opacity-80 ml-2"></span></div>
-                <button id="closeChatBtn" class="text-white text-2xl">&times;</button>
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="stat-card"><div class="text-gray-500 text-sm">总消息</div><div class="stat-number" id="totalCount">0</div></div>
+            <div class="stat-card"><div class="text-gray-500 text-sm">待回复</div><div class="stat-number text-red-600" id="unreadCount">0</div></div>
+            <div class="stat-card"><div class="text-gray-500 text-sm">已回复</div><div class="stat-number text-green-600" id="repliedCount">0</div></div>
+            <div class="stat-card"><div class="text-gray-500 text-sm">用户数</div><div class="stat-number" id="userCount">0</div></div>
+        </div>
+
+        <div class="bg-white rounded-lg overflow-hidden shadow">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 class="font-bold">用户列表</h2>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1 rounded text-sm">刷新</button>
             </div>
-            <div class="flex-1 overflow-auto p-4 bg-gray-50" id="chatMessages"></div>
-            <div class="p-4 bg-white border-t flex gap-2">
-                <input type="text" id="messageInput" class="flex-1 border rounded-full px-4 py-2 outline-none" placeholder="输入回复... 按 Enter 发送" autocomplete="off">
-                <button id="sendMsgBtn" class="bg-indigo-600 text-white px-5 py-2 rounded-full">发送</button>
+            <div id="userList"></div>
+        </div>
+    </div>
+
+    <!-- 聊天窗口 -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><span id="chatUserName"></span> <span id="chatUserEmail" class="text-sm opacity-80"></span></div>
+                <button class="close-btn" id="closeChatBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="chatMessages"></div>
+            <div class="modal-footer">
+                <input type="text" id="msgInput" placeholder="输入回复... 按 Enter 发送">
+                <button id="sendBtn">发送</button>
             </div>
         </div>
     </div>
 
     <!-- 删除确认 -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content text-center">
-            <p>确定删除该用户的所有对话吗？</p>
-            <div class="flex gap-3 mt-4">
-                <button id="cancelDelete" class="bg-gray-200 text-black">取消</button>
-                <button id="confirmDelete" class="bg-red-600 text-white">删除</button>
-            </div>
+    <div id="deleteModal" class="delete-modal">
+        <div class="delete-box">
+            <p>确定删除该用户的所有对话？</p>
+            <button class="cancel-delete" id="cancelDeleteBtn">取消</button>
+            <button class="confirm-delete" id="confirmDeleteBtn">删除</button>
         </div>
     </div>
 
-    <div id="imagePreview" class="image-preview"><img id="previewImg"><div class="absolute top-4 right-4 text-white text-2xl cursor-pointer" onclick="closePreview()">×</div></div>
-    <div id="toast" class="toast-msg"></div>
+    <div id="toastMsg" class="toast"></div>
 
     <script>
-        const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let currentUserEmail = null;
-        let pendingDeleteEmail = null;
-        
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.opacity = '1';
-            setTimeout(() => toast.style.opacity = '0', 2000);
-        }
-        
-        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-        function formatTime(dateStr) { return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-        
-        window.showImage = function(url) { document.getElementById('previewImg').src = url; document.getElementById('imagePreview').classList.add('show'); };
-        window.closePreview = function() { document.getElementById('imagePreview').classList.remove('show'); };
-        
-        async function loadUsers() {
-            const { data } = await supabase.from('livechat_messages').select('*').order('created_at', { ascending: true });
-            if (!data) return;
+        // 使用不同的变量名避免冲突
+        (function() {
+            const SB_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
+            const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
             
-            const groups = {};
-            for (let msg of data) {
-                if (!groups[msg.email]) groups[msg.email] = { name: msg.name, email: msg.email, phone: msg.phone, address: msg.address, lastMsg: msg.message, lastTime: msg.created_at };
-                groups[msg.email].lastMsg = msg.message;
-                groups[msg.email].lastTime = msg.created_at;
+            const sbClient = window.supabase.createClient(SB_URL, SB_KEY);
+            
+            let currentUserEmail = null;
+            let deleteTargetEmail = null;
+            
+            function showToast(msg) {
+                const toast = document.getElementById('toastMsg');
+                toast.textContent = msg;
+                toast.style.opacity = '1';
+                setTimeout(() => toast.style.opacity = '0', 2000);
             }
             
-            // 获取回复数
-            const { data: replies } = await supabase.from('message_replies').select('*');
-            const replyCount = {};
-            if (replies) { for (let r of replies) replyCount[r.message_id] = (replyCount[r.message_id] || 0) + 1; }
-            
-            const allMessages = data;
-            document.getElementById('totalCount').innerText = allMessages.length;
-            const unread = allMessages.filter(m => !replyCount[m.id] || replyCount[m.id] === 0).length;
-            document.getElementById('unreadCount').innerText = unread;
-            document.getElementById('repliedCount').innerText = allMessages.length - unread;
-            document.getElementById('userCount').innerText = Object.keys(groups).length;
-            
-            const container = document.getElementById('conversationsContainer');
-            if (Object.keys(groups).length === 0) { container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无对话</div>'; return; }
-            
-            let html = '';
-            for (let email in groups) {
-                const g = groups[email];
-                const hasUnread = !replyCount[allMessages.filter(m => m.email === email).pop()?.id];
-                html += `<div class="conversation-item ${hasUnread ? 'has-unread' : ''}" onclick="openChat('${escapeHtml(email)}')">
-                    <div class="flex justify-between">
-                        <div><span class="font-semibold">${escapeHtml(g.name)}</span><span class="text-gray-400 text-sm ml-2">${escapeHtml(email)}</span></div>
-                        <button class="delete-btn text-red-500" onclick="event.stopPropagation(); deleteUser('${escapeHtml(email)}')">删除</button>
-                    </div>
-                    <div class="text-sm text-gray-500 mt-1">${escapeHtml(g.lastMsg.substring(0, 50))}</div>
-                    <div class="text-xs text-gray-400 mt-1">${new Date(g.lastTime).toLocaleString()}</div>
-                </div>`;
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                });
             }
-            container.innerHTML = html;
-        }
-        
-        window.deleteUser = function(email) { pendingDeleteEmail = email; document.getElementById('deleteModal').classList.add('show'); };
-        document.getElementById('cancelDelete').onclick = () => document.getElementById('deleteModal').classList.remove('show');
-        document.getElementById('confirmDelete').onclick = async () => {
-            if (!pendingDeleteEmail) return;
-            const { data: msgs } = await supabase.from('livechat_messages').select('id').eq('email', pendingDeleteEmail);
-            if (msgs) await supabase.from('message_replies').delete().in('message_id', msgs.map(m => m.id));
-            await supabase.from('livechat_messages').delete().eq('email', pendingDeleteEmail);
-            showToast('已删除');
-            document.getElementById('deleteModal').classList.remove('show');
-            loadUsers();
-            if (currentUserEmail === pendingDeleteEmail) document.getElementById('chatModal').classList.remove('show');
-            pendingDeleteEmail = null;
-        };
-        
-        async function openChat(email) {
-            currentUserEmail = email;
-            const { data: messages } = await supabase.from('livechat_messages').select('*').eq('email', email).order('created_at', { ascending: true });
-            const msgIds = messages.map(m => m.id);
-            const { data: replies } = await supabase.from('message_replies').select('*').in('message_id', msgIds).order('created_at', { ascending: true });
-            const repliesByMsg = {};
-            if (replies) { for (let r of replies) { if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = []; repliesByMsg[r.message_id].push(r); } }
             
-            const user = messages[0];
-            document.getElementById('userName').innerHTML = escapeHtml(user.name);
-            document.getElementById('userEmail').innerHTML = escapeHtml(user.email);
+            function formatTime(dateStr) {
+                return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
             
-            let chatHtml = '';
-            for (let msg of messages) {
-                chatHtml += `<div class="chat-message user">
-                    <div class="bubble user">
-                        <div>${escapeHtml(msg.message)}</div>
-                        ${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImage('${escapeHtml(msg.image_url)}')">` : ''}
-                        <div class="msg-time">${formatTime(msg.created_at)}</div>
-                    </div>
-                </div>`;
+            async function loadUsers() {
+                const { data: messages, error } = await sbClient.from('livechat_messages').select('*').order('created_at', { ascending: true });
+                if (error) { console.error(error); return; }
                 
-                if (repliesByMsg[msg.id]) {
-                    chatHtml += `<div class="replies">`;
-                    for (let r of repliesByMsg[msg.id]) {
-                        chatHtml += `<div class="reply-item">
-                            <div class="reply-bubble">
-                                <div>${escapeHtml(r.reply)}</div>
-                                ${r.reply_image_url ? `<img src="${escapeHtml(r.reply_image_url)}" class="reply-image" onclick="showImage('${escapeHtml(r.reply_image_url)}')">` : ''}
-                                <div class="reply-time">${new Date(r.created_at).toLocaleString()}</div>
-                            </div>
-                        </div>`;
+                // 获取回复数
+                const { data: replies } = await sbClient.from('message_replies').select('*');
+                const replyCount = {};
+                if (replies) {
+                    for (let r of replies) {
+                        replyCount[r.message_id] = (replyCount[r.message_id] || 0) + 1;
                     }
-                    chatHtml += `</div>`;
+                }
+                
+                // 按邮箱分组
+                const groups = {};
+                for (let msg of messages || []) {
+                    if (!groups[msg.email]) {
+                        groups[msg.email] = {
+                            name: msg.name,
+                            email: msg.email,
+                            phone: msg.phone,
+                            address: msg.address,
+                            messages: []
+                        };
+                    }
+                    groups[msg.email].messages.push(msg);
+                }
+                
+                // 统计
+                const totalMessages = messages?.length || 0;
+                const unreadCount = (messages || []).filter(m => !replyCount[m.id] || replyCount[m.id] === 0).length;
+                document.getElementById('totalCount').innerText = totalMessages;
+                document.getElementById('unreadCount').innerText = unreadCount;
+                document.getElementById('repliedCount').innerText = totalMessages - unreadCount;
+                document.getElementById('userCount').innerText = Object.keys(groups).length;
+                
+                const container = document.getElementById('userList');
+                if (Object.keys(groups).length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-400">暂无用户</div>';
+                    return;
+                }
+                
+                let html = '';
+                for (let email in groups) {
+                    const g = groups[email];
+                    const lastMsg = g.messages[g.messages.length - 1];
+                    const hasUnread = !replyCount[lastMsg.id] || replyCount[lastMsg.id] === 0;
+                    html += `
+                        <div class="user-item ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}">
+                            <div class="flex-1" onclick="window.openUserChat('${escapeHtml(email)}')">
+                                <div><span class="font-semibold">${escapeHtml(g.name)}</span> <span class="text-gray-400 text-sm">${escapeHtml(email)}</span></div>
+                                <div class="text-sm text-gray-500 mt-1">${escapeHtml(lastMsg.message.substring(0, 50))}</div>
+                                <div class="text-xs text-gray-400 mt-1">${new Date(lastMsg.created_at).toLocaleString()}</div>
+                            </div>
+                            <button class="delete-btn" onclick="event.stopPropagation(); window.deleteUser('${escapeHtml(email)}')">删除</button>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            }
+            
+            window.deleteUser = function(email) {
+                deleteTargetEmail = email;
+                document.getElementById('deleteModal').classList.add('show');
+            };
+            
+            async function confirmDelete() {
+                if (!deleteTargetEmail) return;
+                const { data: msgs } = await sbClient.from('livechat_messages').select('id').eq('email', deleteTargetEmail);
+                if (msgs && msgs.length > 0) {
+                    const msgIds = msgs.map(m => m.id);
+                    await sbClient.from('message_replies').delete().in('message_id', msgIds);
+                }
+                await sbClient.from('livechat_messages').delete().eq('email', deleteTargetEmail);
+                showToast('已删除');
+                document.getElementById('deleteModal').classList.remove('show');
+                loadUsers();
+                if (currentUserEmail === deleteTargetEmail) {
+                    document.getElementById('chatModal').classList.remove('show');
+                }
+                deleteTargetEmail = null;
+            }
+            
+            window.openUserChat = async function(email) {
+                currentUserEmail = email;
+                const { data: messages } = await sbClient.from('livechat_messages').select('*').eq('email', email).order('created_at', { ascending: true });
+                if (!messages || messages.length === 0) return;
+                
+                const msgIds = messages.map(m => m.id);
+                const { data: replies } = await sbClient.from('message_replies').select('*').in('message_id', msgIds).order('created_at', { ascending: true });
+                const repliesByMsg = {};
+                if (replies) {
+                    for (let r of replies) {
+                        if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = [];
+                        repliesByMsg[r.message_id].push(r);
+                    }
+                }
+                
+                const user = messages[0];
+                document.getElementById('chatUserName').innerHTML = escapeHtml(user.name);
+                document.getElementById('chatUserEmail').innerHTML = escapeHtml(user.email);
+                
+                let chatHtml = '';
+                for (let msg of messages) {
+                    chatHtml += `
+                        <div class="chat-message user">
+                            <div class="bubble user">
+                                <div>${escapeHtml(msg.message)}</div>
+                                <div class="msg-time">${formatTime(msg.created_at)}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (repliesByMsg[msg.id] && repliesByMsg[msg.id].length > 0) {
+                        chatHtml += `<div class="replies">`;
+                        for (let r of repliesByMsg[msg.id]) {
+                            chatHtml += `
+                                <div class="reply-item">
+                                    <div class="reply-bubble">
+                                        <div>${escapeHtml(r.reply)}</div>
+                                        <div class="reply-time">${new Date(r.created_at).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        chatHtml += `</div>`;
+                    }
+                }
+                document.getElementById('chatMessages').innerHTML = chatHtml;
+                document.getElementById('chatModal').classList.add('show');
+                const msgArea = document.getElementById('chatMessages');
+                msgArea.scrollTop = msgArea.scrollHeight;
+                document.getElementById('msgInput').focus();
+            };
+            
+            async function sendMessage() {
+                const msg = document.getElementById('msgInput').value.trim();
+                if (!msg) return;
+                if (!currentUserEmail) { showToast('请先选择用户'); return; }
+                
+                const { data: msgs } = await sbClient.from('livechat_messages').select('id').eq('email', currentUserEmail).order('created_at', { ascending: false }).limit(1);
+                if (!msgs || msgs.length === 0) { showToast('没有可回复的消息'); return; }
+                
+                const lastMsgId = msgs[0].id;
+                const { error } = await sbClient.from('message_replies').insert([{
+                    message_id: lastMsgId,
+                    reply: msg,
+                    created_at: new Date().toISOString()
+                }]);
+                
+                if (error) {
+                    showToast('发送失败: ' + error.message);
+                } else {
+                    showToast('已发送');
+                    document.getElementById('msgInput').value = '';
+                    window.openUserChat(currentUserEmail);
+                    loadUsers();
                 }
             }
-            document.getElementById('chatMessages').innerHTML = chatHtml;
-            document.getElementById('chatModal').classList.add('show');
-            setTimeout(() => { const area = document.getElementById('chatMessages'); area.scrollTop = area.scrollHeight; }, 100);
-        }
-        
-        async function sendReply() {
-            const message = document.getElementById('messageInput').value.trim();
-            if (!message) return;
-            if (!currentUserEmail) { showToast('请先选择用户'); return; }
             
-            const { data: messages } = await supabase.from('livechat_messages').select('id').eq('email', currentUserEmail).order('created_at', { ascending: false }).limit(1);
-            if (!messages || messages.length === 0) { showToast('没有找到可回复的消息'); return; }
+            // 事件绑定
+            document.getElementById('refreshBtn').onclick = loadUsers;
+            document.getElementById('closeChatBtn').onclick = () => document.getElementById('chatModal').classList.remove('show');
+            document.getElementById('sendBtn').onclick = sendMessage;
+            document.getElementById('cancelDeleteBtn').onclick = () => document.getElementById('deleteModal').classList.remove('show');
+            document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
             
-            const lastMsgId = messages[0].id;
-            const { error } = await supabase.from('message_replies').insert([{
-                message_id: lastMsgId,
-                reply: message,
-                created_at: new Date().toISOString()
-            }]);
+            const inputField = document.getElementById('msgInput');
+            if (inputField) {
+                inputField.onkeypress = function(e) {
+                    if (e.key === 'Enter') sendMessage();
+                };
+            }
             
-            if (error) { showToast('发送失败: ' + error.message); } 
-            else { showToast('发送成功'); document.getElementById('messageInput').value = ''; openChat(currentUserEmail); loadUsers(); }
-        }
-        
-        document.getElementById('refreshBtn').onclick = loadUsers;
-        document.getElementById('closeChatBtn').onclick = () => document.getElementById('chatModal').classList.remove('show');
-        document.getElementById('sendMsgBtn').onclick = sendReply;
-        document.getElementById('messageInput').onkeypress = (e) => { if (e.key === 'Enter') sendReply(); };
-        
-        // 实时订阅
-        supabase.channel('admin').on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, () => loadUsers())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, () => { loadUsers(); if (currentUserEmail) openChat(currentUserEmail); })
-            .subscribe();
-        
-        loadUsers();
+            // 实时订阅
+            const channel = sbClient.channel('admin-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'livechat_messages' }, () => loadUsers())
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'message_replies' }, () => {
+                    loadUsers();
+                    if (currentUserEmail) window.openUserChat(currentUserEmail);
+                })
+                .subscribe();
+            
+            loadUsers();
+        })();
     </script>
 </body>
 </html>
