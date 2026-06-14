@@ -3,241 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CJ客服后台管理系统 | 实时对话</title>
+    <title>CJ客服后台 | 实时对话管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f3f4f6; }
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
         
-        .conversation-item {
-            transition: all 0.2s;
-            cursor: pointer;
-            border-bottom: 1px solid #e5e7eb;
-        }
+        .conversation-item { transition: all 0.2s; cursor: pointer; border-bottom: 1px solid #e5e7eb; }
         .conversation-item:hover { background: #f9fafb; }
         .delete-btn { opacity: 0; transition: opacity 0.2s; }
         .conversation-item:hover .delete-btn { opacity: 1; }
-        .message-bubble { 
-            background: #e0e7ff; 
-            padding: 8px 12px; 
-            border-radius: 12px; 
-            display: inline-block; 
-            max-width: 100%;
-            font-size: 13px;
-        }
-        .reply-bubble { 
-            background: #d1fae5; 
-            padding: 8px 12px; 
-            border-radius: 12px; 
-            display: inline-block; 
-            max-width: 100%; 
-            margin-top: 4px;
-            font-size: 13px;
-        }
-        .toast-msg { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background: rgba(0,0,0,0.8); 
-            color: white; 
-            padding: 10px 20px; 
-            border-radius: 40px; 
-            font-size: 13px; 
-            z-index: 10002; 
-            pointer-events: none; 
-            opacity: 0; 
-            transition: opacity 0.2s;
+        .toast-msg {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
+            border-radius: 40px; font-size: 13px; z-index: 10002;
+            pointer-events: none; opacity: 0; transition: opacity 0.2s;
             backdrop-filter: blur(8px);
         }
-        .has-unread { 
-            animation: pulse 0.5s; 
-            background: #fef2f2; 
-        }
-        @keyframes pulse { 
-            0% { background: #fee2e2; } 
-            100% { background: transparent; } 
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        .status-online { background: #10b981; color: white; }
-        .status-offline { background: #9ca3af; color: white; }
+        .has-unread { animation: pulse 0.5s; background: #fef2f2; }
+        @keyframes pulse { 0% { background: #fee2e2; } 100% { background: transparent; } }
         
-        /* 滚动条 */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        
-        .user-info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 12px;
+        .chat-message { margin-bottom: 16px; display: flex; flex-direction: column; }
+        .chat-message.user { align-items: flex-end; }
+        .chat-message.admin { align-items: flex-start; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 13px; }
+        .chat-bubble.user { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-bottom-right-radius: 4px; }
+        .chat-bubble.admin { background: white; color: #1f2937; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .chat-image { max-width: 150px; max-height: 150px; border-radius: 12px; margin-top: 4px; cursor: pointer; }
+        .image-preview-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
+            z-index: 20000; cursor: pointer;
         }
-        .user-info-item {
-            font-size: 12px;
-        }
-        .user-info-label {
-            font-weight: 600;
-            color: #4b5563;
-            margin-right: 6px;
-        }
-        .user-info-value {
-            color: #1f2937;
+        .image-preview-modal.show { display: flex; }
+        .image-preview-modal img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+        .messages-area { max-height: 450px; overflow-y: auto; background: #f8fafc; border-radius: 16px; padding: 16px; }
+        .selected-image-preview { position: relative; display: inline-block; margin-top: 8px; }
+        .selected-image-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+        .remove-image {
+            position: absolute; top: -8px; right: -8px; background: red; color: white;
+            border-radius: 50%; width: 20px; height: 20px; display: flex;
+            align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <!-- 导航栏 -->
     <nav class="bg-gradient-to-r from-indigo-900 to-purple-900 text-white px-6 py-4 shadow-lg sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-headset text-white text-sm"></i>
-                </div>
-                <div>
-                    <span class="font-bold text-xl">CJ 客服后台</span>
-                    <span class="text-xs ml-2 text-white/70">实时管理系统</span>
-                </div>
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center"><i class="fas fa-headset text-white text-sm"></i></div>
+                <div><span class="font-bold text-xl">CJ 客服后台</span><span class="text-xs ml-2 text-white/70">实时管理系统</span></div>
             </div>
             <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span class="text-sm">实时连接中</span>
-                </div>
-                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                    <i class="fas fa-user-shield text-sm"></i>
-                </div>
+                <div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span class="text-sm">实时连接中</span></div>
+                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"><i class="fas fa-user-shield text-sm"></i></div>
             </div>
         </div>
     </nav>
 
     <div class="container mx-auto px-4 py-6">
-        <!-- 统计卡片 -->
         <div class="grid md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">总消息数</p>
-                        <p id="totalCount" class="text-2xl font-bold text-gray-800">0</p>
-                    </div>
-                    <i class="fas fa-envelope text-3xl text-blue-400"></i>
-                </div>
+                <div class="flex items-center justify-between"><div><p class="text-gray-500 text-sm">总消息数</p><p id="totalCount" class="text-2xl font-bold">0</p></div><i class="fas fa-envelope text-3xl text-blue-400"></i></div>
             </div>
             <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">待回复</p>
-                        <p id="unreadCount" class="text-2xl font-bold text-red-600">0</p>
-                    </div>
-                    <i class="fas fa-clock text-3xl text-yellow-400"></i>
-                </div>
+                <div class="flex items-center justify-between"><div><p class="text-gray-500 text-sm">待回复</p><p id="unreadCount" class="text-2xl font-bold text-red-600">0</p></div><i class="fas fa-clock text-3xl text-yellow-400"></i></div>
             </div>
             <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">已回复</p>
-                        <p id="repliedCount" class="text-2xl font-bold text-green-600">0</p>
-                    </div>
-                    <i class="fas fa-check-circle text-3xl text-green-400"></i>
-                </div>
+                <div class="flex items-center justify-between"><div><p class="text-gray-500 text-sm">已回复</p><p id="repliedCount" class="text-2xl font-bold text-green-600">0</p></div><i class="fas fa-check-circle text-3xl text-green-400"></i></div>
             </div>
             <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">对话用户</p>
-                        <p id="userCount" class="text-2xl font-bold text-purple-600">0</p>
-                    </div>
-                    <i class="fas fa-users text-3xl text-purple-400"></i>
-                </div>
+                <div class="flex items-center justify-between"><div><p class="text-gray-500 text-sm">对话用户</p><p id="userCount" class="text-2xl font-bold text-purple-600">0</p></div><i class="fas fa-users text-3xl text-purple-400"></i></div>
             </div>
         </div>
 
-        <!-- 对话列表 -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-comments text-indigo-500"></i>
-                    <h2 class="font-bold text-lg">对话列表（按用户分组）</h2>
-                    <span class="text-xs text-gray-400 bg-gray-200 px-2 py-1 rounded-full">实时更新</span>
-                </div>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition flex items-center gap-1">
-                    <i class="fas fa-sync-alt"></i> 手动刷新
-                </button>
+                <div class="flex items-center gap-3"><i class="fas fa-comments text-indigo-500"></i><h2 class="font-bold text-lg">对话列表（按用户分组）</h2><span class="text-xs text-gray-400 bg-gray-200 px-2 py-1 rounded-full">实时更新</span></div>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition"><i class="fas fa-sync-alt"></i> 手动刷新</button>
             </div>
-            <div id="conversationsContainer" class="divide-y">
-                <div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>加载对话中...</p>
-                </div>
-            </div>
+            <div id="conversationsContainer" class="divide-y"><div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>加载对话中...</p></div></div>
         </div>
     </div>
 
     <!-- 回复弹窗 -->
     <div id="replyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl w-[550px] max-w-[90%] max-h-[85vh] overflow-hidden shadow-2xl animate-fade-in">
+        <div class="bg-white rounded-2xl w-[650px] max-w-[90%] max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
             <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-reply"></i>
-                    <h3 class="font-bold">回复用户</h3>
-                </div>
+                <div class="flex items-center gap-2"><i class="fas fa-reply"></i><h3 class="font-bold">回复用户</h3></div>
                 <button id="closeModalBtn" class="text-white/80 hover:text-white text-2xl">&times;</button>
             </div>
-            <div class="p-5 overflow-auto" style="max-height: calc(85vh - 120px);">
+            <div class="flex-1 overflow-auto p-5">
                 <!-- 用户信息 -->
-                <div id="userInfoPanel" class="user-info-grid"></div>
-                <!-- 对话预览 -->
-                <div class="bg-gray-50 rounded-xl p-4 mb-4">
-                    <div class="text-xs text-gray-400 mb-2 flex items-center gap-1">
-                        <i class="fas fa-history"></i> 对话记录
-                    </div>
-                    <div id="conversationPreview" class="space-y-3 max-h-80 overflow-auto"></div>
-                </div>
-                <!-- 回复输入 -->
-                <div>
+                <div id="userInfoPanel" class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl text-sm mb-4"></div>
+                <!-- 对话记录 -->
+                <div class="messages-area" id="conversationPreview"></div>
+                <!-- 回复输入区 -->
+                <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">回复内容</label>
-                    <textarea id="replyContent" rows="4" class="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="输入回复内容..."></textarea>
+                    <div class="flex gap-2 items-center bg-gray-100 rounded-xl p-2">
+                        <input type="text" id="replyInput" class="flex-1 bg-transparent border-none outline-none p-2" placeholder="输入回复...按 Enter 发送" autocomplete="off">
+                        <button id="attachReplyBtn" class="p-2 text-gray-500 hover:text-indigo-600 transition"><i class="fas fa-image"></i></button>
+                        <input type="file" id="replyImageInput" accept="image/*" style="display: none;">
+                    </div>
+                    <div id="replyImagePreview" class="mt-2" style="display: none;">
+                        <div class="selected-image-preview"><img id="replyPreviewImg"><span class="remove-image" id="removeReplyImage">×</span></div>
+                    </div>
                 </div>
             </div>
             <div class="px-5 py-4 border-t bg-gray-50 flex justify-end gap-3">
                 <button id="cancelModalBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">取消</button>
-                <button id="submitReplyBtn" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2">
-                    <i class="fas fa-paper-plane"></i> 发送回复
-                </button>
+                <button id="submitReplyBtn" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"><i class="fas fa-paper-plane"></i> 发送回复</button>
             </div>
         </div>
     </div>
     
     <!-- 删除确认弹窗 -->
     <div id="deleteConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl w-96 p-6 shadow-2xl">
-            <div class="text-center mb-4">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-trash-alt text-red-500 text-xl"></i>
-                </div>
-                <h3 class="font-bold text-lg">确认删除</h3>
-                <p class="text-gray-500 text-sm mt-2">确定要删除该用户的所有对话记录吗？<br>此操作不可恢复。</p>
-            </div>
-            <div class="flex justify-end gap-3">
-                <button id="cancelDeleteBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">取消</button>
-                <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">确认删除</button>
-            </div>
+        <div class="bg-white rounded-2xl w-96 p-6 text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-trash-alt text-red-500 text-xl"></i></div>
+            <h3 class="font-bold text-lg">确认删除</h3><p class="text-gray-500 text-sm mt-2">确定要删除该用户的所有对话记录吗？<br>此操作不可恢复。</p>
+            <div class="flex justify-end gap-3 mt-4"><button id="cancelDeleteBtn" class="px-4 py-2 border rounded-lg">取消</button><button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg">确认删除</button></div>
         </div>
     </div>
     
+    <!-- 图片大图预览 -->
+    <div id="imagePreviewModal" class="image-preview-modal"><img id="previewImage" src=""><div class="absolute top-4 right-4 text-white text-2xl cursor-pointer" onclick="closeImagePreview()">×</div></div>
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
@@ -247,58 +142,35 @@
             
             const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
-            let currentConversation = null;
             let currentUserEmail = null;
             let pendingDeleteEmail = null;
             let realtimeChannel = null;
+            let pendingReplyImage = null;
             
             const toastEl = document.getElementById('toastMsg');
+            function showToast(msg, isError = false) { toastEl.textContent = msg; toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.8)'; toastEl.style.opacity = '1'; setTimeout(() => { toastEl.style.opacity = '0'; }, 2500); }
+            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+            function formatDate(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString('zh-CN', { hour12: false }); }
             
-            function showToast(msg, isError = false) {
-                toastEl.textContent = msg;
-                toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.8)';
-                toastEl.style.opacity = '1';
-                setTimeout(() => { toastEl.style.opacity = '0'; }, 2500);
-            }
+            window.showImagePreview = function(url) { document.getElementById('previewImage').src = url; document.getElementById('imagePreviewModal').classList.add('show'); };
+            window.closeImagePreview = function() { document.getElementById('imagePreviewModal').classList.remove('show'); };
             
-            function escapeHtml(str) { 
-                if (!str) return ''; 
-                return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); 
-            }
-            
-            function formatDate(dateStr) {
-                if (!dateStr) return '';
-                const date = new Date(dateStr);
-                return date.toLocaleString('zh-CN', { hour12: false });
+            async function uploadImage(file) {
+                const fileName = `reply_${Date.now()}_${file.name}`;
+                const { error } = await _supabase.storage.from('chat_images').upload(fileName, file);
+                if (error) { console.error('上传失败:', error); return null; }
+                const { data } = _supabase.storage.from('chat_images').getPublicUrl(fileName);
+                return data.publicUrl;
             }
             
             async function renderConversations() {
-                const { data: messages, error } = await _supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .order('created_at', { ascending: true });
-                
-                if (error) { 
-                    console.error(error); 
-                    document.getElementById('conversationsContainer').innerHTML = '<div class="text-center py-8 text-red-400">加载失败</div>';
-                    return; 
-                }
-                
-                // 按邮箱分组
+                const { data: messages, error } = await _supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: true });
+                if (error) { console.error(error); return; }
                 const groups = {};
                 for (let msg of messages || []) {
-                    if (!groups[msg.email]) {
-                        groups[msg.email] = { 
-                            name: msg.name, 
-                            email: msg.email, 
-                            phone: msg.phone || '未填写',
-                            address: msg.address || '未填写',
-                            messages: [] 
-                        };
-                    }
+                    if (!groups[msg.email]) groups[msg.email] = { name: msg.name, email: msg.email, phone: msg.phone || '未填写', address: msg.address || '未填写', messages: [] };
                     groups[msg.email].messages.push(msg);
                 }
-                
                 const totalUsers = Object.keys(groups).length;
                 document.getElementById('userCount').innerText = totalUsers;
                 const totalMessages = messages?.length || 0;
@@ -306,207 +178,112 @@
                 document.getElementById('totalCount').innerText = totalMessages;
                 document.getElementById('unreadCount').innerText = unreadCount;
                 document.getElementById('repliedCount').innerText = totalMessages - unreadCount;
-                
                 const container = document.getElementById('conversationsContainer');
-                if (Object.keys(groups).length === 0) { 
-                    container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-2"></i><p>暂无对话</p></div>'; 
-                    return; 
-                }
-                
+                if (Object.keys(groups).length === 0) { container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-2"></i><p>暂无对话</p></div>'; return; }
                 let html = '';
                 for (let email in groups) {
                     const group = groups[email];
                     const lastMsg = group.messages[group.messages.length - 1];
                     const hasUnread = group.messages.some(m => !m.reply || m.reply === '');
                     const lastTime = formatDate(lastMsg.created_at);
-                    html += `
-                        <div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}">
-                            <div class="flex-1 cursor-pointer" onclick="window.openConversation('${escapeHtml(email)}')">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                        ${escapeHtml(group.name.charAt(0).toUpperCase())}
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold text-gray-800">${escapeHtml(group.name)}</div>
-                                        <div class="text-xs text-gray-400">${escapeHtml(email)}</div>
-                                    </div>
-                                </div>
-                                <div class="text-sm text-gray-500 mt-1 truncate max-w-md">
-                                    <i class="fas fa-comment-dots text-gray-300 mr-1 text-xs"></i>
-                                    ${escapeHtml(lastMsg.message.substring(0, 50))}
-                                </div>
+                    html += `<div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}">
+                        <div class="flex-1 cursor-pointer" onclick="window.openConversation('${escapeHtml(email)}')">
+                            <div class="flex items-center gap-3 mb-1">
+                                <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">${escapeHtml(group.name.charAt(0).toUpperCase())}</div>
+                                <div><div class="font-semibold text-gray-800">${escapeHtml(group.name)}</div><div class="text-xs text-gray-400">${escapeHtml(email)}</div></div>
                             </div>
-                            <div class="text-right flex items-center gap-3">
-                                <div>
-                                    <div class="text-xs text-gray-400">${lastTime}</div>
-                                    ${hasUnread ? '<div class="mt-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">待回复</div>' : '<div class="mt-1 text-green-500 text-xs">已回复</div>'}
-                                </div>
-                                <button class="delete-btn text-red-400 hover:text-red-600 p-2 transition" onclick="event.stopPropagation(); window.confirmDeleteUser('${escapeHtml(email)}')">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
+                            <div class="text-sm text-gray-500 mt-1 truncate max-w-md"><i class="fas fa-comment-dots text-gray-300 mr-1 text-xs"></i>${escapeHtml(lastMsg.message.substring(0, 50))}</div>
                         </div>
-                    `;
+                        <div class="text-right flex items-center gap-3">
+                            <div><div class="text-xs text-gray-400">${lastTime}</div>${hasUnread ? '<div class="mt-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">待回复</div>' : '<div class="mt-1 text-green-500 text-xs">已回复</div>'}</div>
+                            <button class="delete-btn text-red-400 hover:text-red-600 p-2 transition" onclick="event.stopPropagation(); window.confirmDeleteUser('${escapeHtml(email)}')"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>`;
                 }
                 container.innerHTML = html;
             }
             
             window.openConversation = async function(email) {
                 currentUserEmail = email;
-                const { data } = await _supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .eq('email', email)
-                    .order('created_at', { ascending: true });
-                
+                const { data } = await _supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
                 if (data && data.length > 0) {
-                    currentConversation = data;
                     const userInfo = data[0];
-                    
-                    // 显示用户信息
-                    const userInfoHtml = `
-                        <div class="user-info-item">
-                            <span class="user-info-label"><i class="fas fa-user"></i> 姓名：</span>
-                            <span class="user-info-value">${escapeHtml(userInfo.name)}</span>
-                        </div>
-                        <div class="user-info-item">
-                            <span class="user-info-label"><i class="fas fa-envelope"></i> 邮箱：</span>
-                            <span class="user-info-value">${escapeHtml(userInfo.email)}</span>
-                        </div>
-                        <div class="user-info-item">
-                            <span class="user-info-label"><i class="fas fa-phone"></i> 手机号：</span>
-                            <span class="user-info-value">${escapeHtml(userInfo.phone || '未填写')}</span>
-                        </div>
-                        <div class="user-info-item">
-                            <span class="user-info-label"><i class="fas fa-map-marker-alt"></i> 地址：</span>
-                            <span class="user-info-value">${escapeHtml(userInfo.address || '未填写')}</span>
-                        </div>
+                    document.getElementById('userInfoPanel').innerHTML = `
+                        <div><span class="font-semibold">👤 姓名：</span>${escapeHtml(userInfo.name)}</div>
+                        <div><span class="font-semibold">📧 邮箱：</span>${escapeHtml(userInfo.email)}</div>
+                        <div><span class="font-semibold">📱 手机：</span>${escapeHtml(userInfo.phone || '未填写')}</div>
+                        <div><span class="font-semibold">📍 地址：</span>${escapeHtml(userInfo.address || '未填写')}</div>
                     `;
-                    document.getElementById('userInfoPanel').innerHTML = userInfoHtml;
-                    
-                    // 显示对话记录
-                    let previewHtml = '';
+                    let previewHtml = '<div class="space-y-3">';
                     for (let msg of data) {
                         const time = formatDate(msg.created_at);
-                        previewHtml += `
-                            <div class="mb-3">
-                                <div class="text-xs text-gray-400 mb-1">${time}</div>
-                                <div class="message-bubble max-w-full">
-                                    <i class="fas fa-user-circle text-indigo-400 mr-1 text-xs"></i>
-                                    ${escapeHtml(msg.message)}
-                                </div>
-                        `;
+                        previewHtml += `<div class="chat-message user"><div class="chat-bubble user"><div>${escapeHtml(msg.message)}</div>${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">` : ''}<div class="text-xs opacity-70 mt-1">${time}</div></div></div>`;
                         if (msg.reply && msg.reply.trim()) {
-                            previewHtml += `
-                                <div class="reply-bubble max-w-full mt-1">
-                                    <i class="fas fa-headset text-green-500 mr-1 text-xs"></i>
-                                    ${escapeHtml(msg.reply)}
-                                </div>
-                            `;
-                        } else {
-                            previewHtml += `<div class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> 等待回复...</div>`;
+                            previewHtml += `<div class="chat-message admin"><div class="chat-bubble admin"><div>${escapeHtml(msg.reply)}</div>${msg.reply_image_url ? `<img src="${escapeHtml(msg.reply_image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.reply_image_url)}')">` : ''}<div class="text-xs text-gray-400 mt-1">${time}</div></div></div>`;
                         }
-                        previewHtml += `</div>`;
                     }
+                    previewHtml += '</div>';
                     document.getElementById('conversationPreview').innerHTML = previewHtml;
-                    document.getElementById('replyContent').value = '';
+                    document.getElementById('replyInput').value = '';
+                    document.getElementById('replyImagePreview').style.display = 'none';
+                    pendingReplyImage = null;
                     document.getElementById('replyModal').classList.remove('hidden');
                     document.getElementById('replyModal').classList.add('flex');
+                    setTimeout(() => document.getElementById('replyInput').focus(), 100);
                 }
             };
             
-            window.confirmDeleteUser = function(email) {
-                pendingDeleteEmail = email;
-                document.getElementById('deleteConfirmModal').classList.remove('hidden');
-                document.getElementById('deleteConfirmModal').classList.add('flex');
-            };
-            
-            async function deleteUserConversations() {
-                if (!pendingDeleteEmail) return;
-                const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail);
-                if (error) { 
-                    showToast('删除失败: ' + error.message, true); 
-                } else { 
-                    showToast('已删除该用户所有对话'); 
-                    renderConversations();
-                    // 如果当前打开的弹窗是被删除的用户，关闭弹窗
-                    if (currentUserEmail === pendingDeleteEmail) {
-                        document.getElementById('replyModal').classList.add('hidden');
-                        document.getElementById('replyModal').classList.remove('flex');
-                    }
-                }
-                document.getElementById('deleteConfirmModal').classList.add('hidden');
-                document.getElementById('deleteConfirmModal').classList.remove('flex');
-                pendingDeleteEmail = null;
-            }
+            window.confirmDeleteUser = function(email) { pendingDeleteEmail = email; document.getElementById('deleteConfirmModal').classList.remove('hidden'); document.getElementById('deleteConfirmModal').classList.add('flex'); };
+            async function deleteUserConversations() { if (!pendingDeleteEmail) return; const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail); if (error) showToast('删除失败', true); else { showToast('已删除该用户所有对话'); renderConversations(); if (currentUserEmail === pendingDeleteEmail) document.getElementById('replyModal').classList.add('hidden'); } document.getElementById('deleteConfirmModal').classList.add('hidden'); pendingDeleteEmail = null; }
             
             async function submitReply() {
-                const reply = document.getElementById('replyContent').value.trim();
-                if (!reply) { 
-                    showToast('请输入回复内容', true); 
-                    return; 
-                }
-                const unreadMessages = currentConversation.filter(m => !m.reply || m.reply === '');
-                if (unreadMessages.length === 0) { 
-                    showToast('所有消息都已回复', true); 
-                    return; 
-                }
+                const reply = document.getElementById('replyInput').value.trim();
+                if (!reply && !pendingReplyImage) { showToast('请输入回复内容', true); return; }
+                const { data: messages } = await _supabase.from(TABLE_NAME).select('*').eq('email', currentUserEmail).order('created_at', { ascending: true });
+                const unreadMessages = messages.filter(m => !m.reply || m.reply === '');
+                if (unreadMessages.length === 0) { showToast('所有消息都已回复', true); return; }
                 const targetMsg = unreadMessages[unreadMessages.length - 1];
-                const { error } = await _supabase
-                    .from(TABLE_NAME)
-                    .update({ reply: reply, is_replied: true })
-                    .eq('id', targetMsg.id);
-                
-                if (error) { 
-                    showToast('回复失败: ' + error.message, true); 
-                } else {
-                    showToast('回复成功！用户端会实时显示');
-                    document.getElementById('replyModal').classList.add('hidden');
-                    document.getElementById('replyModal').classList.remove('flex');
-                    renderConversations();
-                }
+                let imageUrl = null;
+                if (pendingReplyImage) { imageUrl = await uploadImage(pendingReplyImage); pendingReplyImage = null; }
+                const updateData = { reply: reply || '', is_replied: true };
+                if (imageUrl) updateData.reply_image_url = imageUrl;
+                const { error } = await _supabase.from(TABLE_NAME).update(updateData).eq('id', targetMsg.id);
+                if (error) { showToast('回复失败: ' + error.message, true); }
+                else { showToast('回复成功！用户端会实时显示'); document.getElementById('replyModal').classList.add('hidden'); renderConversations(); }
             }
             
-            function setupRealtime() {
-                if (realtimeChannel) {
-                    _supabase.removeChannel(realtimeChannel);
-                }
-                realtimeChannel = _supabase
-                    .channel('admin-realtime')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, (payload) => {
-                        console.log('后台收到实时变更:', payload.eventType);
-                        renderConversations();
-                    })
-                    .subscribe((status) => {
-                        console.log('后台实时订阅状态:', status);
-                        const statusDot = document.querySelector('.w-2.h-2.bg-green-400');
-                        if (status === 'SUBSCRIBED') {
-                            if (statusDot) statusDot.className = 'w-2 h-2 bg-green-400 rounded-full animate-pulse';
-                        } else {
-                            if (statusDot) statusDot.className = 'w-2 h-2 bg-yellow-400 rounded-full';
-                        }
-                    });
-            }
+            function setupRealtime() { if (realtimeChannel) _supabase.removeChannel(realtimeChannel); realtimeChannel = _supabase.channel('admin-realtime').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => renderConversations()).subscribe(); }
             
             // 绑定事件
             document.getElementById('refreshBtn').onclick = renderConversations;
-            document.getElementById('closeModalBtn').onclick = () => { 
-                document.getElementById('replyModal').classList.add('hidden'); 
-                document.getElementById('replyModal').classList.remove('flex'); 
-            };
-            document.getElementById('cancelModalBtn').onclick = () => { 
-                document.getElementById('replyModal').classList.add('hidden'); 
-                document.getElementById('replyModal').classList.remove('flex'); 
-            };
+            document.getElementById('closeModalBtn').onclick = () => document.getElementById('replyModal').classList.add('hidden');
+            document.getElementById('cancelModalBtn').onclick = () => document.getElementById('replyModal').classList.add('hidden');
             document.getElementById('submitReplyBtn').onclick = submitReply;
-            document.getElementById('cancelDeleteBtn').onclick = () => { 
-                document.getElementById('deleteConfirmModal').classList.add('hidden'); 
-                document.getElementById('deleteConfirmModal').classList.remove('flex'); 
-                pendingDeleteEmail = null; 
-            };
+            document.getElementById('cancelDeleteBtn').onclick = () => document.getElementById('deleteConfirmModal').classList.add('hidden');
             document.getElementById('confirmDeleteBtn').onclick = deleteUserConversations;
             
-            // 初始化
+            // Enter 键发送
+            const replyInput = document.getElementById('replyInput');
+            replyInput.onkeypress = (e) => { if (e.key === 'Enter') submitReply(); };
+            
+            // 图片上传
+            const attachReplyBtn = document.getElementById('attachReplyBtn');
+            const replyImageInput = document.getElementById('replyImageInput');
+            const replyImagePreview = document.getElementById('replyImagePreview');
+            const replyPreviewImg = document.getElementById('replyPreviewImg');
+            const removeReplyImage = document.getElementById('removeReplyImage');
+            
+            attachReplyBtn.onclick = () => replyImageInput.click();
+            replyImageInput.onchange = (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    pendingReplyImage = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { replyPreviewImg.src = ev.target.result; replyImagePreview.style.display = 'block'; };
+                    reader.readAsDataURL(pendingReplyImage);
+                }
+            };
+            removeReplyImage.onclick = () => { pendingReplyImage = null; replyImagePreview.style.display = 'none'; replyImageInput.value = ''; };
+            
             renderConversations();
             setupRealtime();
         })();

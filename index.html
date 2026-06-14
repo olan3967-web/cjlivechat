@@ -10,243 +10,138 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #ffffff; }
+        body { font-family: 'Inter', sans-serif; background: #ffffff; }
         
-        .gradient-bg {
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0d1117 100%);
-        }
+        .gradient-bg { background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0d1117 100%); }
         
         .chat-interface {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            top: 0;
-            background: white;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
+            position: fixed; bottom: 0; left: 0; right: 0; top: 0;
+            background: #f5f7fa; z-index: 10000; display: none; flex-direction: column;
         }
         .chat-interface.open { display: flex; }
         
         .chat-header {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
-            color: white;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .back-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; }
         .back-btn:hover { background: rgba(255,255,255,0.2); }
         
         .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #f5f7fa;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            flex: 1; overflow-y: auto; padding: 20px; background: #f5f7fa;
+            display: flex; flex-direction: column; gap: 12px;
         }
         
-        .message { display: flex; max-width: 80%; }
+        .message { display: flex; max-width: 80%; margin-bottom: 4px; }
         .message.user { align-self: flex-end; justify-content: flex-end; }
         .message.admin { align-self: flex-start; }
         
         .bubble {
-            padding: 10px 14px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            max-width: 100%;
+            padding: 10px 14px; border-radius: 18px; word-wrap: break-word; max-width: 100%;
         }
         .user .bubble {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border-bottom-right-radius: 4px;
+            color: white; border-bottom-right-radius: 4px;
         }
         .admin .bubble {
-            background: white;
-            color: #1f2937;
-            border-bottom-left-radius: 4px;
+            background: white; color: #1f2937; border-bottom-left-radius: 4px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .message-time {
-            font-size: 10px;
-            margin-top: 4px;
-            color: #9ca3af;
-        }
+        .message-image { max-width: 200px; max-height: 200px; border-radius: 12px; cursor: pointer; margin-top: 4px; }
+        .message-time { font-size: 10px; margin-top: 4px; color: #9ca3af; }
         .user .message-time { text-align: right; }
         
         .input-area {
-            background: white;
-            border-top: 1px solid #e5e7eb;
-            padding: 12px 16px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
+            background: white; border-top: 1px solid #e5e7eb;
+            padding: 12px 16px; display: flex; gap: 12px; align-items: center;
         }
-        .input-area input {
-            flex: 1;
+        .input-wrapper {
+            flex: 1; display: flex; gap: 8px; align-items: center;
+            background: #f5f7fa; border-radius: 28px; padding: 4px 8px 4px 16px;
             border: 1px solid #e5e7eb;
-            border-radius: 24px;
-            padding: 10px 16px;
-            outline: none;
-            font-size: 15px;
         }
-        .input-area input:focus { border-color: #2563eb; }
+        .input-wrapper input { flex: 1; background: transparent; border: none; padding: 10px 0; outline: none; font-size: 15px; }
+        .attach-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; padding: 8px; border-radius: 50%; }
+        .attach-btn:hover { background: #e5e7eb; color: #2563eb; }
         .send-btn {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            border: none;
-            color: white;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s, opacity 0.2s;
+            border: none; color: white; width: 44px; height: 44px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
         }
         .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
-        .send-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+        .send-btn:disabled { background: #9ca3af; cursor: not-allowed; }
         
-        /* 信息收集弹窗 */
         .info-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 10001;
         }
-        .info-modal.show {
-            display: flex;
-        }
+        .info-modal.show { display: flex; }
         .info-card {
-            background: white;
-            border-radius: 24px;
-            padding: 32px;
-            width: 450px;
-            max-width: 90%;
-            max-height: 85vh;
-            overflow-y: auto;
+            background: white; border-radius: 24px; padding: 32px;
+            width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
         .info-card h3 {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 24px; font-weight: 700;
             background: linear-gradient(135deg, #2563eb, #7c3aed);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             margin-bottom: 8px;
         }
         .info-card input, .info-card textarea {
-            width: 100%;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            outline: none;
-            font-size: 15px;
-            transition: border-color 0.2s;
+            width: 100%; border: 1px solid #e5e7eb; border-radius: 12px;
+            padding: 12px 16px; margin-bottom: 16px; outline: none; font-size: 15px;
             font-family: inherit;
         }
-        .info-card textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .info-card input:focus, .info-card textarea:focus { 
-            border-color: #2563eb; 
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1); 
-        }
+        .info-card textarea { resize: vertical; min-height: 80px; }
+        .info-card input:focus, .info-card textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
         .start-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, opacity 0.2s;
+            width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white; border: none; padding: 14px; border-radius: 12px;
+            font-weight: 600; cursor: pointer; transition: transform 0.2s;
         }
-        .start-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+        .start-btn:hover { transform: translateY(-1px); }
         
         .landing-btn {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(37,99,235,0.4);
-            z-index: 9999;
-            transition: transform 0.2s, box-shadow 0.2s;
+            position: fixed; bottom: 24px; right: 24px;
+            width: 60px; height: 60px; background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 20px rgba(37,99,235,0.4); z-index: 9999;
+            transition: transform 0.2s;
         }
-        .landing-btn:hover { transform: scale(1.1); box-shadow: 0 8px 30px rgba(37,99,235,0.5); }
+        .landing-btn:hover { transform: scale(1.1); }
         
         .toast-msg {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 14px;
-            z-index: 10002;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
+            border-radius: 40px; font-size: 14px; z-index: 10002;
+            pointer-events: none; opacity: 0; transition: opacity 0.2s;
             backdrop-filter: blur(8px);
         }
         
-        .messages-container::-webkit-scrollbar {
-            width: 4px;
-        }
-        .messages-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        .messages-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
+        .messages-container::-webkit-scrollbar { width: 4px; }
+        .messages-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .messages-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         
-        .required-star {
-            color: #ef4444;
-            margin-left: 2px;
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: #374151; }
+        .required-star { color: #ef4444; margin-left: 2px; }
+        
+        .image-preview-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
+            z-index: 20000; cursor: pointer;
         }
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #374151;
+        .image-preview-modal.show { display: flex; }
+        .image-preview-modal img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+        .selected-image-preview {
+            position: relative; display: inline-block; margin-top: 8px;
+        }
+        .selected-image-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+        .remove-image {
+            position: absolute; top: -8px; right: -8px; background: red; color: white;
+            border-radius: 50%; width: 20px; height: 20px; display: flex;
+            align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
         }
     </style>
 </head>
@@ -270,16 +165,9 @@
     <!-- Hero 区域 -->
     <section class="pt-24 pb-16 px-4 gradient-bg">
         <div class="container mx-auto max-w-5xl text-center">
-            <div class="inline-block px-4 py-1 rounded-full bg-white/10 text-white/80 text-sm mb-6 backdrop-blur-sm">
-                🚀 7x24小时在线支持
-            </div>
-            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                智能客服，<br>
-                <span class="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">实时响应</span>
-            </h1>
-            <p class="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                有问题随时联系我们，专业客服团队会第一时间为您解答
-            </p>
+            <div class="inline-block px-4 py-1 rounded-full bg-white/10 text-white/80 text-sm mb-6 backdrop-blur-sm">🚀 7x24小时在线支持</div>
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">智能客服，<br><span class="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">实时响应</span></h1>
+            <p class="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">有问题随时联系我们，专业客服团队会第一时间为您解答</p>
             <button id="openChatHero" class="bg-white text-gray-900 px-8 py-3 rounded-full font-semibold text-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
                 <i class="fas fa-headset mr-2"></i>开始对话
             </button>
@@ -294,26 +182,17 @@
                 <p class="text-gray-500 max-w-2xl mx-auto">专业、高效、可靠的客户服务体验</p>
             </div>
             <div class="grid md:grid-cols-3 gap-8">
-                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all duration-300">
-                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-100 transition">
-                        <i class="fas fa-bolt text-2xl text-blue-600"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">极速响应</h3>
-                    <p class="text-gray-500">平均响应时间小于30秒，让您的问题快速得到解决</p>
+                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-bolt text-2xl text-blue-600"></i></div>
+                    <h3 class="text-xl font-bold mb-2">极速响应</h3><p class="text-gray-500">平均响应时间小于30秒</p>
                 </div>
-                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all duration-300">
-                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-100 transition">
-                        <i class="fas fa-headset text-2xl text-purple-600"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">专业团队</h3>
-                    <p class="text-gray-500">经验丰富的客服团队，为您提供专业解决方案</p>
+                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-headset text-2xl text-purple-600"></i></div>
+                    <h3 class="text-xl font-bold mb-2">专业团队</h3><p class="text-gray-500">经验丰富的客服团队</p>
                 </div>
-                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all duration-300">
-                    <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-100 transition">
-                        <i class="fas fa-database text-2xl text-green-600"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">永久保存</h3>
-                    <p class="text-gray-500">所有对话记录永久保存，随时可追溯历史</p>
+                <div class="group p-6 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4"><i class="fas fa-database text-2xl text-green-600"></i></div>
+                    <h3 class="text-xl font-bold mb-2">永久保存</h3><p class="text-gray-500">所有对话记录永久保存</p>
                 </div>
             </div>
         </div>
@@ -331,34 +210,33 @@
         </div>
     </section>
 
-    <!-- 底部 -->
-    <footer class="bg-gray-900 text-white py-8 text-center text-sm">
-        <p>© 2025 CJ Support. All rights reserved.</p>
-    </footer>
+    <footer class="bg-gray-900 text-white py-8 text-center text-sm"><p>© 2025 CJ Support. All rights reserved.</p></footer>
 
     <!-- 悬浮聊天按钮 -->
-    <div class="landing-btn" id="floatingChatBtn">
-        <i class="fas fa-comment-dots text-2xl"></i>
-    </div>
+    <div class="landing-btn" id="floatingChatBtn"><i class="fas fa-comment-dots text-2xl"></i></div>
 
     <!-- 聊天界面 -->
     <div class="chat-interface" id="chatInterface">
         <div class="chat-header">
             <button class="back-btn" id="closeChatInterface"><i class="fas fa-arrow-left"></i></button>
-            <div class="flex-1">
-                <div style="font-weight: 700;">CJ 智能客服</div>
-                <div style="font-size: 11px; opacity: 0.8;">在线 · 通常秒回</div>
-            </div>
+            <div class="flex-1"><div style="font-weight: 700;">CJ 智能客服</div><div style="font-size: 11px; opacity: 0.8;">在线 · 通常秒回</div></div>
             <div class="w-2 h-2 bg-green-400 rounded-full"></div>
         </div>
         <div class="messages-container" id="messagesContainer"></div>
         <div class="input-area">
-            <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
+            <div class="input-wrapper">
+                <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
+                <button class="attach-btn" id="attachBtn"><i class="fas fa-image"></i></button>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            </div>
             <button class="send-btn" id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        <div id="selectedImagePreview" class="px-4 pb-2" style="display: none;">
+            <div class="selected-image-preview"><img id="previewSelectedImage"><span class="remove-image" id="removeSelectedImage">×</span></div>
         </div>
     </div>
 
-    <!-- 用户信息收集弹窗（第一次点击联系客服时显示） -->
+    <!-- 用户信息收集弹窗 -->
     <div id="userInfoModal" class="info-modal">
         <div class="info-card">
             <div class="text-center mb-4">
@@ -369,26 +247,17 @@
                 <p class="text-gray-400 text-sm mt-2">请填写以下信息，客服会尽快联系您</p>
             </div>
             <form id="userInfoForm">
-                <div>
-                    <label class="form-label">姓名 <span class="required-star">*</span></label>
-                    <input type="text" id="userNameInput" placeholder="请输入您的姓名" autocomplete="off" required>
-                </div>
-                <div>
-                    <label class="form-label">邮箱 <span class="required-star">*</span></label>
-                    <input type="email" id="userEmailInput" placeholder="example@email.com" autocomplete="off" required>
-                </div>
-                <div>
-                    <label class="form-label">手机号 <span class="required-star">*</span></label>
-                    <input type="tel" id="userPhoneInput" placeholder="请输入手机号码" autocomplete="off" required>
-                </div>
-                <div>
-                    <label class="form-label">发货地址</label>
-                    <textarea id="userAddressInput" placeholder="请输入您的发货地址（选填）" rows="2"></textarea>
-                </div>
+                <div><label class="form-label">姓名 <span class="required-star">*</span></label><input type="text" id="userNameInput" placeholder="请输入您的姓名" required></div>
+                <div><label class="form-label">邮箱 <span class="required-star">*</span></label><input type="email" id="userEmailInput" placeholder="example@email.com" required></div>
+                <div><label class="form-label">手机号 <span class="required-star">*</span></label><input type="tel" id="userPhoneInput" placeholder="请输入手机号码" required></div>
+                <div><label class="form-label">发货地址</label><textarea id="userAddressInput" placeholder="请输入您的发货地址（选填）" rows="2"></textarea></div>
                 <button type="submit" class="start-btn">开始对话 <i class="fas fa-arrow-right ml-1"></i></button>
             </form>
         </div>
     </div>
+    
+    <!-- 图片大图预览 -->
+    <div id="imagePreviewModal" class="image-preview-modal"><img id="previewImage" src=""><div class="absolute top-4 right-4 text-white text-2xl cursor-pointer" onclick="closeImagePreview()">×</div></div>
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
@@ -401,6 +270,7 @@
             
             let currentUser = { id: null, name: null, email: null, phone: null, address: null };
             let realtimeChannel = null;
+            let pendingImageFile = null;
             
             // DOM 元素
             const userInfoModal = document.getElementById('userInfoModal');
@@ -409,6 +279,8 @@
             const messagesContainer = document.getElementById('messagesContainer');
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendMessageBtn');
+            const attachBtn = document.getElementById('attachBtn');
+            const imageInput = document.getElementById('imageInput');
             const userNameInput = document.getElementById('userNameInput');
             const userEmailInput = document.getElementById('userEmailInput');
             const userPhoneInput = document.getElementById('userPhoneInput');
@@ -418,6 +290,11 @@
             const floatingChatBtn = document.getElementById('floatingChatBtn');
             const closeChatInterface = document.getElementById('closeChatInterface');
             const toastEl = document.getElementById('toastMsg');
+            const selectedImagePreview = document.getElementById('selectedImagePreview');
+            const previewSelectedImage = document.getElementById('previewSelectedImage');
+            const removeSelectedImage = document.getElementById('removeSelectedImage');
+            const imagePreviewModal = document.getElementById('imagePreviewModal');
+            const previewImage = document.getElementById('previewImage');
             
             function showToast(msg, isError = false) {
                 toastEl.textContent = msg;
@@ -426,29 +303,37 @@
                 setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
             }
             
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                });
+            window.showImagePreview = function(url) {
+                previewImage.src = url;
+                imagePreviewModal.classList.add('show');
+            };
+            
+            window.closeImagePreview = function() {
+                imagePreviewModal.classList.remove('show');
+            };
+            
+            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+            
+            function scrollToBottom() { setTimeout(() => { if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight; }, 100); }
+            
+            async function uploadImage(file) {
+                const fileName = `${Date.now()}_${file.name}`;
+                const { error } = await _supabase.storage.from('chat_images').upload(fileName, file);
+                if (error) { console.error('上传失败:', error); return null; }
+                const { data } = _supabase.storage.from('chat_images').getPublicUrl(fileName);
+                return data.publicUrl;
             }
             
-            function scrollToBottom() {
-                setTimeout(() => {
-                    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }, 100);
-            }
-            
-            function addMessageToUI(message, isUser, time, messageId = null) {
+            function addMessageToUI(message, isUser, time, imageUrl = null, messageId = null) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = isUser ? 'message user' : 'message admin';
                 if (messageId) messageDiv.setAttribute('data-msg-id', messageId);
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble';
-                bubbleDiv.innerHTML = (message || '').replace(/\n/g, '<br>');
+                let content = '';
+                if (imageUrl) content += `<img src="${escapeHtml(imageUrl)}" class="message-image" onclick="showImagePreview('${escapeHtml(imageUrl)}')">`;
+                if (message) content += `<div>${escapeHtml(message).replace(/\n/g, '<br>')}</div>`;
+                bubbleDiv.innerHTML = content;
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'message-time';
                 timeDiv.innerText = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -458,24 +343,21 @@
                 scrollToBottom();
             }
             
-            function updateReplyInUI(messageId, replyText) {
+            function updateReplyInUI(messageId, replyText, replyImageUrl = null, replyTime = null) {
                 const allMessages = messagesContainer.querySelectorAll('.message.user');
                 for (let userMsg of allMessages) {
                     if (userMsg.getAttribute('data-msg-id') == messageId) {
-                        let nextSibling = userMsg.nextElementSibling;
-                        if (nextSibling && nextSibling.classList && nextSibling.classList.contains('admin') && nextSibling.getAttribute('data-reply-for') == messageId) {
-                            const bubble = nextSibling.querySelector('.bubble');
-                            if (bubble) bubble.innerHTML = escapeHtml(replyText);
+                        const replyDiv = document.createElement('div');
+                        replyDiv.className = 'message admin';
+                        replyDiv.setAttribute('data-reply-for', messageId);
+                        let content = '';
+                        if (replyImageUrl) content += `<img src="${escapeHtml(replyImageUrl)}" class="message-image" onclick="showImagePreview('${escapeHtml(replyImageUrl)}')">`;
+                        if (replyText) content += `<div>${escapeHtml(replyText).replace(/\n/g, '<br>')}</div>`;
+                        replyDiv.innerHTML = `<div class="bubble">${content}</div><div class="message-time">${replyTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
+                        if (userMsg.nextSibling) {
+                            messagesContainer.insertBefore(replyDiv, userMsg.nextSibling);
                         } else {
-                            const replyDiv = document.createElement('div');
-                            replyDiv.className = 'message admin';
-                            replyDiv.setAttribute('data-reply-for', messageId);
-                            replyDiv.innerHTML = `<div class="bubble">${escapeHtml(replyText)}</div><div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
-                            if (userMsg.nextSibling) {
-                                messagesContainer.insertBefore(replyDiv, userMsg.nextSibling);
-                            } else {
-                                messagesContainer.appendChild(replyDiv);
-                            }
+                            messagesContainer.appendChild(replyDiv);
                         }
                         scrollToBottom();
                         break;
@@ -485,23 +367,16 @@
             
             async function loadUserMessages() {
                 if (!currentUser.email) return;
-                const { data, error } = await _supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .eq('email', currentUser.email)
-                    .order('created_at', { ascending: true });
-                
+                const { data, error } = await _supabase.from(TABLE_NAME).select('*').eq('email', currentUser.email).order('created_at', { ascending: true });
                 if (error) { console.error(error); return; }
-                
                 messagesContainer.innerHTML = '';
                 addMessageToUI(`您好 ${currentUser.name || '用户'}！我是CJ客服助手，请问有什么可以帮助您的？`, false, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-                
                 if (data && data.length) {
                     for (let msg of data) {
                         const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        addMessageToUI(msg.message, true, time, msg.id);
+                        addMessageToUI(msg.message, true, time, msg.image_url, msg.id);
                         if (msg.reply && msg.reply.trim()) {
-                            addMessageToUI(msg.reply, false, time, null);
+                            addMessageToUI(msg.reply, false, time, msg.reply_image_url);
                         }
                     }
                 }
@@ -510,30 +385,34 @@
             
             async function sendMessage() {
                 const message = messageInput.value.trim();
-                if (!message) return;
+                if (!message && !pendingImageFile) return;
                 sendBtn.disabled = true;
                 const tempTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                addMessageToUI(message, true, tempTime);
+                let imageUrl = null;
+                if (pendingImageFile) {
+                    imageUrl = await uploadImage(pendingImageFile);
+                    pendingImageFile = null;
+                    selectedImagePreview.style.display = 'none';
+                }
+                addMessageToUI(message, true, tempTime, imageUrl);
                 messageInput.value = '';
                 messageInput.focus();
                 
-                // 保存完整用户信息到数据库
-                const { data, error } = await _supabase
-                    .from(TABLE_NAME)
-                    .insert([{ 
-                        name: currentUser.name, 
-                        email: currentUser.email, 
-                        phone: currentUser.phone,
-                        address: currentUser.address,
-                        message: message, 
-                        reply: '', 
-                        is_replied: false, 
-                        created_at: new Date().toISOString() 
-                    }])
-                    .select();
+                const insertData = {
+                    name: currentUser.name,
+                    email: currentUser.email,
+                    phone: currentUser.phone,
+                    address: currentUser.address,
+                    message: message || '',
+                    reply: '',
+                    is_replied: false,
+                    created_at: new Date().toISOString()
+                };
+                if (imageUrl) insertData.image_url = imageUrl;
                 
-                if (error) { 
-                    console.error(error); 
+                const { data, error } = await _supabase.from(TABLE_NAME).insert([insertData]).select();
+                if (error) {
+                    console.error(error);
                     showToast('发送失败', true);
                 } else {
                     showToast('已发送');
@@ -547,33 +426,25 @@
             }
             
             function setupRealtimeSubscription() {
-                if (realtimeChannel) {
-                    _supabase.removeChannel(realtimeChannel);
-                }
-                
-                realtimeChannel = _supabase
-                    .channel(`user-chat-${currentUser.email}`)
+                if (realtimeChannel) _supabase.removeChannel(realtimeChannel);
+                realtimeChannel = _supabase.channel(`user-chat-${currentUser.email}`)
                     .on('postgres_changes', {
                         event: 'UPDATE',
                         schema: 'public',
                         table: TABLE_NAME,
                         filter: `email=eq.${currentUser.email}`
                     }, (payload) => {
-                        console.log('收到实时更新:', payload);
                         const oldReply = payload.old.reply;
                         const newReply = payload.new.reply;
                         const messageId = payload.new.id;
                         if ((!oldReply || oldReply === '') && newReply && newReply !== '') {
                             showToast('收到客服回复');
-                            updateReplyInUI(messageId, newReply);
+                            updateReplyInUI(messageId, newReply, payload.new.reply_image_url, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                         }
-                    })
-                    .subscribe((status) => {
-                        console.log('实时订阅状态:', status);
-                    });
+                    }).subscribe((status) => { console.log('实时订阅状态:', status); });
             }
             
-            // 检查本地存储是否有用户信息
+            // 检查本地存储
             const savedUser = localStorage.getItem('chat_user');
             if (savedUser) {
                 try {
@@ -587,33 +458,16 @@
                 } catch(e) {}
             }
             
-            // 提交用户信息表单
+            // 提交用户信息
             userInfoForm.onsubmit = function(e) {
                 e.preventDefault();
                 const name = userNameInput.value.trim();
                 const email = userEmailInput.value.trim();
                 const phone = userPhoneInput.value.trim();
                 const address = userAddressInput.value.trim();
-                
-                if (!name) { showToast('请填写姓名', true); return; }
-                if (!email) { showToast('请填写邮箱', true); return; }
-                if (!phone) { showToast('请填写手机号', true); return; }
-                if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
-                    showToast('请输入有效的邮箱地址', true); 
-                    return;
-                }
-                if (!/^1[3-9]\d{9}$/.test(phone) && !/^\+\d{10,15}$/.test(phone)) {
-                    showToast('请输入有效的手机号码', true);
-                    return;
-                }
-                
-                currentUser = { 
-                    id: Date.now().toString(), 
-                    name: name, 
-                    email: email, 
-                    phone: phone, 
-                    address: address || '' 
-                };
+                if (!name || !email || !phone) { showToast('请填写完整信息', true); return; }
+                if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) { showToast('请输入有效的邮箱地址', true); return; }
+                currentUser = { id: Date.now().toString(), name, email, phone, address: address || '' };
                 localStorage.setItem('chat_user', JSON.stringify(currentUser));
                 userInfoModal.classList.remove('show');
                 loadUserMessages();
@@ -623,10 +477,8 @@
                 showToast('欢迎！开始聊天吧');
             };
             
-            // 打开聊天（先检查是否有用户信息）
             function openChat() {
                 if (!currentUser.name || !currentUser.phone) {
-                    // 显示信息收集弹窗
                     userInfoModal.classList.add('show');
                 } else {
                     chatInterface.classList.add('open');
@@ -635,6 +487,27 @@
                 }
             }
             
+            // 图片选择
+            attachBtn.onclick = () => imageInput.click();
+            imageInput.onchange = (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    pendingImageFile = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        previewSelectedImage.src = ev.target.result;
+                        selectedImagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(pendingImageFile);
+                    showToast('已选择图片，发送消息时将一起发送');
+                }
+            };
+            removeSelectedImage.onclick = () => {
+                pendingImageFile = null;
+                selectedImagePreview.style.display = 'none';
+                imageInput.value = '';
+            };
+            
+            // 事件绑定
             openChatNav.onclick = openChat;
             openChatHero.onclick = openChat;
             floatingChatBtn.onclick = openChat;
@@ -642,7 +515,7 @@
             sendBtn.onclick = sendMessage;
             messageInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
             
-            console.log('前端已启动 - CJ风格，首次点击联系客服填写信息');
+            console.log('前端已启动');
         })();
     </script>
 </body>
