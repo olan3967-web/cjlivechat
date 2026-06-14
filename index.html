@@ -13,6 +13,8 @@
             transform-origin: bottom right;
         }
         .chat-popup.hidden { display: none; }
+        /* 确保按钮可点击 */
+        #openChatBtn, #openChatBtn2 { cursor: pointer; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -22,7 +24,7 @@
             <div class="container mx-auto max-w-5xl text-center">
                 <h1 class="text-5xl font-bold mb-4">智能客服，实时响应</h1>
                 <p class="text-xl mb-8">有问题随时问，我们的客服团队会第一时间回复您</p>
-                <button id="openChatBtn" class="bg-white text-indigo-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition">
+                <button id="openChatBtn" class="bg-white text-indigo-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg">
                     <i class="fas fa-comment-dots mr-2"></i>联系客服
                 </button>
             </div>
@@ -30,11 +32,30 @@
 
         <section class="py-16 px-4 max-w-6xl mx-auto">
             <div class="grid md:grid-cols-3 gap-8 text-center">
-                <div><i class="fas fa-bolt text-4xl text-indigo-600 mb-3"></i><h3 class="text-xl font-bold">极速响应</h3><p class="text-gray-600">提交后客服立即收到通知</p></div>
-                <div><i class="fas fa-headset text-4xl text-indigo-600 mb-3"></i><h3 class="text-xl font-bold">专业客服</h3><p class="text-gray-600">经验丰富的团队为您服务</p></div>
-                <div><i class="fas fa-lock text-4xl text-indigo-600 mb-3"></i><h3 class="text-xl font-bold">信息安全</h3><p class="text-gray-600">数据加密存储</p></div>
+                <div class="p-6 rounded-xl hover:shadow-lg transition">
+                    <i class="fas fa-bolt text-4xl text-indigo-600 mb-3"></i>
+                    <h3 class="text-xl font-bold">极速响应</h3>
+                    <p class="text-gray-600">提交后客服立即收到通知</p>
+                </div>
+                <div class="p-6 rounded-xl hover:shadow-lg transition">
+                    <i class="fas fa-headset text-4xl text-indigo-600 mb-3"></i>
+                    <h3 class="text-xl font-bold">专业客服</h3>
+                    <p class="text-gray-600">经验丰富的团队为您服务</p>
+                </div>
+                <div class="p-6 rounded-xl hover:shadow-lg transition">
+                    <i class="fas fa-lock text-4xl text-indigo-600 mb-3"></i>
+                    <h3 class="text-xl font-bold">信息安全</h3>
+                    <p class="text-gray-600">数据加密存储</p>
+                </div>
             </div>
         </section>
+        
+        <!-- 固定底部浮动按钮（备用） -->
+        <div class="fixed bottom-6 right-6 z-40">
+            <button id="openChatBtn2" class="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-indigo-700 transition transform hover:scale-105 flex items-center justify-center">
+                <i class="fas fa-comment-dots text-2xl"></i>
+            </button>
+        </div>
         
         <footer class="bg-gray-800 text-white py-6 text-center text-sm">
             <p>© 2025 智能落地页 | 实时对话系统</p>
@@ -42,21 +63,21 @@
     </main>
 
     <!-- Live Chat 弹窗 -->
-    <div id="chatPopup" class="chat-popup hidden fixed bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl border z-50">
-        <div class="bg-indigo-600 text-white px-5 py-3 rounded-t-2xl flex justify-between">
-            <span><i class="fas fa-headset mr-2"></i>在线客服</span>
-            <button id="closeChatBtn" class="text-white text-2xl">&times;</button>
+    <div id="chatPopup" class="chat-popup hidden fixed bottom-24 right-6 w-96 bg-white rounded-2xl shadow-2xl border z-50">
+        <div class="bg-indigo-600 text-white px-5 py-3 rounded-t-2xl flex justify-between items-center">
+            <span class="font-semibold"><i class="fas fa-headset mr-2"></i>在线客服</span>
+            <button id="closeChatBtn" class="text-white text-2xl hover:text-gray-200">&times;</button>
         </div>
         <div class="p-5">
             <div class="bg-gray-100 p-3 rounded-lg text-sm mb-4">
-                <i class="fas fa-info-circle text-indigo-500"></i> 请留下您的信息，客服会尽快回复
+                <i class="fas fa-info-circle text-indigo-500 mr-1"></i> 请留下您的信息，客服会尽快回复
             </div>
             <form id="chatForm">
-                <input type="text" id="name" placeholder="您的姓名" required class="w-full border rounded-lg px-3 py-2 mb-3">
-                <input type="email" id="email" placeholder="电子邮箱" required class="w-full border rounded-lg px-3 py-2 mb-3">
-                <textarea id="message" rows="3" placeholder="请输入您的问题..." required class="w-full border rounded-lg px-3 py-2 mb-3"></textarea>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
-                    <i class="fas fa-paper-plane mr-2"></i>发送消息
+                <input type="text" id="name" placeholder="您的姓名" required class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="email" id="email" placeholder="电子邮箱" required class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <textarea id="message" rows="3" placeholder="请输入您的问题..." required class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-paper-plane"></i>发送消息
                 </button>
             </form>
             <div id="statusMsg" class="text-sm text-center mt-3 hidden text-green-600"></div>
@@ -64,22 +85,50 @@
     </div>
 
     <script>
-        // Supabase 配置（已配置完成）
+        // Supabase 配置
         const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const TABLE_NAME = 'livechat_messages';
 
-        document.getElementById('openChatBtn').onclick = () => {
-            document.getElementById('chatPopup').classList.remove('hidden');
-        };
-        document.getElementById('closeChatBtn').onclick = () => {
-            document.getElementById('chatPopup').classList.add('hidden');
-        };
+        // 获取元素
+        const chatPopup = document.getElementById('chatPopup');
+        const openChatBtn = document.getElementById('openChatBtn');
+        const openChatBtn2 = document.getElementById('openChatBtn2');
+        const closeChatBtn = document.getElementById('closeChatBtn');
+        const chatForm = document.getElementById('chatForm');
+        const statusMsg = document.getElementById('statusMsg');
 
-        document.getElementById('chatForm').onsubmit = async (e) => {
+        // 打开聊天窗口
+        function openChat() {
+            console.log('打开聊天窗口');
+            chatPopup.classList.remove('hidden');
+        }
+
+        // 关闭聊天窗口
+        function closeChat() {
+            chatPopup.classList.add('hidden');
+        }
+
+        // 绑定打开事件（两个按钮）
+        if (openChatBtn) {
+            openChatBtn.addEventListener('click', openChat);
+        }
+        if (openChatBtn2) {
+            openChatBtn2.addEventListener('click', openChat);
+        }
+        
+        // 绑定关闭事件
+        if (closeChatBtn) {
+            closeChatBtn.addEventListener('click', closeChat);
+        }
+
+        // 点击弹窗外层也可以关闭（可选）
+        // 提交表单
+        chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
@@ -89,23 +138,60 @@
                 return;
             }
 
-            const { error } = await supabase
-                .from(TABLE_NAME)
-                .insert([{ name, email, message, reply: '', is_replied: false, created_at: new Date().toISOString() }]);
+            // 显示发送中状态
+            const submitBtn = chatForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+            submitBtn.disabled = true;
 
-            if (error) {
-                alert('发送失败：' + error.message);
-            } else {
-                const statusDiv = document.getElementById('statusMsg');
-                statusDiv.textContent = '✓ 发送成功！客服会尽快回复您';
-                statusDiv.classList.remove('hidden');
-                document.getElementById('chatForm').reset();
-                setTimeout(() => {
-                    statusDiv.classList.add('hidden');
-                    document.getElementById('chatPopup').classList.add('hidden');
-                }, 2000);
+            try {
+                const { error } = await supabase
+                    .from(TABLE_NAME)
+                    .insert([{ 
+                        name: name, 
+                        email: email, 
+                        message: message, 
+                        reply: '', 
+                        is_replied: false, 
+                        created_at: new Date().toISOString() 
+                    }]);
+
+                if (error) {
+                    console.error('Supabase错误:', error);
+                    alert('发送失败：' + error.message);
+                } else {
+                    statusMsg.textContent = '✓ 发送成功！客服会尽快回复您';
+                    statusMsg.classList.remove('hidden');
+                    chatForm.reset();
+                    setTimeout(() => {
+                        statusMsg.classList.add('hidden');
+                        closeChat();
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('错误:', err);
+                alert('发送失败，请检查网络');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
-        };
+        });
+
+        // 测试 Supabase 连接
+        async function testConnection() {
+            console.log('测试 Supabase 连接...');
+            const { data, error } = await supabase.from(TABLE_NAME).select('count', { count: 'exact', head: true });
+            if (error) {
+                console.error('连接失败:', error);
+                if (error.code === '42P01') {
+                    console.log('数据表不存在，请在 Supabase 中创建 livechat_messages 表');
+                }
+            } else {
+                console.log('Supabase 连接成功！');
+            }
+        }
+        
+        testConnection();
     </script>
 </body>
 </html>
