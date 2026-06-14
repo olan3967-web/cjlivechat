@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CJ客服后台 | 实时对话管理</title>
+    <title>CJ客服后台 | 实时对话</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -21,10 +21,8 @@
             background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
             border-radius: 40px; font-size: 13px; z-index: 10002;
             pointer-events: none; opacity: 0; transition: opacity 0.2s;
-            backdrop-filter: blur(8px);
         }
-        .has-unread { animation: pulse 0.5s; background: #fef2f2; }
-        @keyframes pulse { 0% { background: #fee2e2; } 100% { background: transparent; } }
+        .has-unread { background: #fef2f2; }
         
         /* 聊天消息样式 */
         .chat-message { margin-bottom: 20px; display: flex; width: 100%; position: relative; }
@@ -37,6 +35,55 @@
         .message-time { font-size: 10px; margin-top: 4px; opacity: 0.7; }
         .user .message-time { text-align: left; }
         .admin .message-time { text-align: right; }
+        
+        /* 回复按钮 - 悬停显示 */
+        .reply-btn-on-message {
+            position: absolute;
+            bottom: -8px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 10px;
+            color: #6b7280;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .chat-message.user .reply-btn-on-message { left: 10px; }
+        .chat-message.admin .reply-btn-on-message { right: 10px; }
+        .chat-message:hover .reply-btn-on-message { opacity: 1; }
+        .reply-btn-on-message:hover { background: #f3f4f6; border-color: #2563eb; color: #2563eb; }
+        
+        /* 回复列表样式 */
+        .replies-container {
+            margin-top: 8px;
+            margin-left: 20px;
+            border-left: 2px solid #e5e7eb;
+            padding-left: 12px;
+        }
+        .reply-item {
+            margin-top: 8px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .reply-bubble {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 18px;
+            font-size: 12px;
+            max-width: 80%;
+            border-bottom-right-radius: 4px;
+        }
+        .reply-time {
+            font-size: 9px;
+            opacity: 0.7;
+            margin-top: 2px;
+            text-align: right;
+        }
+        .reply-image { max-width: 100px; max-height: 100px; border-radius: 8px; margin-top: 4px; cursor: pointer; }
         
         .image-preview-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -59,7 +106,6 @@
             background: white;
             border-top: 1px solid #e5e7eb;
             padding: 16px;
-            margin-top: 8px;
         }
         .input-wrapper {
             display: flex;
@@ -86,7 +132,6 @@
             color: #9ca3af;
             padding: 8px;
             border-radius: 50%;
-            transition: all 0.2s;
         }
         .attach-btn:hover { background: #e5e7eb; color: #2563eb; }
         .send-btn {
@@ -100,20 +145,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s;
         }
         .send-btn:hover { transform: scale(1.05); opacity: 0.9; }
         
-        /* 回复目标提示 */
-        .replying-badge {
+        /* 回复目标提示栏 */
+        .replying-bar {
             background: #e0e7ff;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-bottom: 10px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 12px;
         }
         .cancel-reply {
             background: none;
@@ -122,40 +166,6 @@
             cursor: pointer;
             font-size: 12px;
         }
-        
-        /* 消息上的回复按钮（悬停显示） */
-        .reply-btn-on-message {
-            position: absolute;
-            bottom: -8px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 20px;
-            padding: 2px 10px;
-            font-size: 10px;
-            color: #6b7280;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.2s;
-            z-index: 10;
-        }
-        .chat-message.user .reply-btn-on-message { left: 10px; }
-        .chat-message.admin .reply-btn-on-message { right: 10px; }
-        .chat-message:hover .reply-btn-on-message { opacity: 1; }
-        .reply-btn-on-message:hover { background: #f3f4f6; border-color: #2563eb; color: #2563eb; }
-        
-        /* 多回复历史 */
-        .reply-history {
-            margin-top: 8px;
-            padding-top: 6px;
-            border-top: 1px dashed #e5e7eb;
-        }
-        .reply-item {
-            font-size: 11px;
-            color: #6b7280;
-            margin-top: 4px;
-            padding: 4px 0;
-        }
-        .reply-item i { margin-right: 4px; font-size: 9px; color: #10b981; }
     </style>
 </head>
 <body>
@@ -164,11 +174,10 @@
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center"><i class="fas fa-headset text-white text-sm"></i></div>
-                <div><span class="font-bold text-xl">CJ 客服后台</span><span class="text-xs ml-2 text-white/70">实时管理系统</span></div>
+                <div><span class="font-bold text-xl">CJ 客服后台</span><span class="text-xs ml-2 text-white/70">无限回复</span></div>
             </div>
             <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span class="text-sm">实时连接中</span></div>
-                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"><i class="fas fa-user-shield text-sm"></i></div>
+                <div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span class="text-sm">在线</span></div>
             </div>
         </div>
     </nav>
@@ -191,14 +200,14 @@
 
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <div class="flex items-center gap-3"><i class="fas fa-comments text-indigo-500"></i><h2 class="font-bold text-lg">对话列表（按用户分组）</h2><span class="text-xs text-gray-400 bg-gray-200 px-2 py-1 rounded-full">实时更新</span></div>
-                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition"><i class="fas fa-sync-alt"></i> 手动刷新</button>
+                <div class="flex items-center gap-3"><i class="fas fa-comments text-indigo-500"></i><h2 class="font-bold text-lg">对话列表</h2></div>
+                <button id="refreshBtn" class="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600"><i class="fas fa-sync-alt"></i> 刷新</button>
             </div>
-            <div id="conversationsContainer" class="divide-y"><div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>加载对话中...</p></div></div>
+            <div id="conversationsContainer" class="divide-y"><div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>加载中...</p></div></div>
         </div>
     </div>
 
-    <!-- 对话详情弹窗（包含输入框） -->
+    <!-- 对话详情弹窗 -->
     <div id="conversationModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl w-[750px] max-w-[90%] h-[85vh] overflow-hidden shadow-2xl flex flex-col">
             <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-4 flex justify-between items-center shrink-0">
@@ -209,19 +218,19 @@
             <!-- 用户信息 -->
             <div id="userInfoPanel" class="grid grid-cols-2 gap-2 bg-gray-50 p-3 text-sm shrink-0"></div>
             
-            <!-- 对话记录区域 -->
+            <!-- 消息区域 -->
             <div class="messages-area flex-1 overflow-y-auto" id="conversationPreview"></div>
             
-            <!-- 回复目标提示 -->
-            <div id="replyingToBar" class="replying-badge mx-4" style="display: none;">
+            <!-- 回复目标栏 -->
+            <div id="replyingBar" class="replying-bar mx-4" style="display: none;">
                 <span><i class="fas fa-reply"></i> 正在回复: <span id="replyingToText"></span></span>
                 <button id="cancelReplyingBtn" class="cancel-reply">取消</button>
             </div>
             
-            <!-- 底部输入区域 -->
+            <!-- 输入区域 -->
             <div class="reply-input-area shrink-0">
                 <div class="input-wrapper">
-                    <input type="text" id="replyInput" placeholder="输入回复...按 Enter 发送" autocomplete="off">
+                    <input type="text" id="replyInput" placeholder="输入回复... 按 Enter 发送" autocomplete="off">
                     <button class="attach-btn" id="attachReplyBtn"><i class="fas fa-image"></i></button>
                     <input type="file" id="replyImageInput" accept="image/*" style="display: none;">
                     <button class="send-btn" id="submitReplyBtn"><i class="fas fa-paper-plane"></i></button>
@@ -233,16 +242,16 @@
         </div>
     </div>
     
-    <!-- 删除确认弹窗 -->
+    <!-- 删除确认 -->
     <div id="deleteConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl w-96 p-6 text-center">
             <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-trash-alt text-red-500 text-xl"></i></div>
-            <h3 class="font-bold text-lg">确认删除</h3><p class="text-gray-500 text-sm mt-2">确定要删除该用户的所有对话记录吗？<br>此操作不可恢复。</p>
-            <div class="flex justify-end gap-3 mt-4"><button id="cancelDeleteBtn" class="px-4 py-2 border rounded-lg">取消</button><button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg">确认删除</button></div>
+            <h3 class="font-bold text-lg">确认删除</h3><p class="text-gray-500 text-sm mt-2">确定要删除该用户的所有对话吗？</p>
+            <div class="flex justify-end gap-3 mt-4"><button id="cancelDeleteBtn" class="px-4 py-2 border rounded-lg">取消</button><button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg">删除</button></div>
         </div>
     </div>
     
-    <!-- 图片大图预览 -->
+    <!-- 图片预览 -->
     <div id="imagePreviewModal" class="image-preview-modal"><img id="previewImage" src=""><div class="absolute top-4 right-4 text-white text-2xl cursor-pointer" onclick="closeImagePreview()">×</div></div>
     <div id="toastMsg" class="toast-msg"></div>
 
@@ -253,16 +262,18 @@
             
             const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const TABLE_NAME = 'livechat_messages';
+            const REPLIES_TABLE = 'message_replies';
             let currentUserEmail = null;
             let pendingDeleteEmail = null;
             let realtimeChannel = null;
             let pendingReplyImage = null;
-            let currentReplyingMessage = null; // { id, text }
+            let currentReplyingMessage = null;
             
             const toastEl = document.getElementById('toastMsg');
             function showToast(msg, isError = false) { toastEl.textContent = msg; toastEl.style.background = isError ? 'rgba(220,38,38,0.9)' : 'rgba(0,0,0,0.8)'; toastEl.style.opacity = '1'; setTimeout(() => { toastEl.style.opacity = '0'; }, 2500); }
             function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
             function formatTime(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+            function formatDateTime(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString('zh-CN'); }
             
             window.showImagePreview = function(url) { document.getElementById('previewImage').src = url; document.getElementById('imagePreviewModal').classList.add('show'); };
             window.closeImagePreview = function() { document.getElementById('imagePreviewModal').classList.remove('show'); };
@@ -278,6 +289,10 @@
             async function renderConversations() {
                 const { data: messages, error } = await _supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: true });
                 if (error) { console.error(error); return; }
+                const { data: replies } = await _supabase.from(REPLIES_TABLE).select('*');
+                const replyCount = {};
+                if (replies) { for (let r of replies) { replyCount[r.message_id] = (replyCount[r.message_id] || 0) + 1; } }
+                
                 const groups = {};
                 for (let msg of messages || []) {
                     if (!groups[msg.email]) groups[msg.email] = { name: msg.name, email: msg.email, phone: msg.phone || '未填写', address: msg.address || '未填写', messages: [] };
@@ -286,8 +301,8 @@
                 const totalUsers = Object.keys(groups).length;
                 document.getElementById('userCount').innerText = totalUsers;
                 const totalMessages = messages?.length || 0;
-                const unreadCount = (messages || []).filter(m => !m.reply || m.reply === '').length;
                 document.getElementById('totalCount').innerText = totalMessages;
+                const unreadCount = (messages || []).filter(m => !replyCount[m.id] || replyCount[m.id] === 0).length;
                 document.getElementById('unreadCount').innerText = unreadCount;
                 document.getElementById('repliedCount').innerText = totalMessages - unreadCount;
                 const container = document.getElementById('conversationsContainer');
@@ -296,7 +311,7 @@
                 for (let email in groups) {
                     const group = groups[email];
                     const lastMsg = group.messages[group.messages.length - 1];
-                    const hasUnread = group.messages.some(m => !m.reply || m.reply === '');
+                    const hasUnread = !replyCount[lastMsg.id] || replyCount[lastMsg.id] === 0;
                     const lastTime = new Date(lastMsg.created_at).toLocaleString('zh-CN');
                     html += `<div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'has-unread' : ''}" data-email="${escapeHtml(email)}">
                         <div class="flex-1 cursor-pointer" onclick="window.openConversation('${escapeHtml(email)}')">
@@ -315,12 +330,21 @@
                 container.innerHTML = html;
             }
             
-            // 打开对话详情
+            // 加载消息和回复
+            async function loadMessagesWithReplies(email) {
+                const { data: messages } = await _supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
+                if (!messages) return [];
+                const messageIds = messages.map(m => m.id);
+                const { data: replies } = await _supabase.from(REPLIES_TABLE).select('*').in('message_id', messageIds).order('created_at', { ascending: true });
+                return { messages, replies: replies || [] };
+            }
+            
+            // 打开对话
             window.openConversation = async function(email) {
                 currentUserEmail = email;
-                const { data } = await _supabase.from(TABLE_NAME).select('*').eq('email', email).order('created_at', { ascending: true });
-                if (data && data.length > 0) {
-                    const userInfo = data[0];
+                const { messages, replies } = await loadMessagesWithReplies(email);
+                if (messages && messages.length > 0) {
+                    const userInfo = messages[0];
                     document.getElementById('userInfoPanel').innerHTML = `
                         <div><span class="font-semibold">👤 姓名：</span>${escapeHtml(userInfo.name)}</div>
                         <div><span class="font-semibold">📧 邮箱：</span>${escapeHtml(userInfo.email)}</div>
@@ -328,11 +352,49 @@
                         <div><span class="font-semibold">📍 地址：</span>${escapeHtml(userInfo.address || '未填写')}</div>
                     `;
                     
-                    renderMessages(data);
+                    // 组织回复
+                    const repliesByMsg = {};
+                    for (let r of replies) {
+                        if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = [];
+                        repliesByMsg[r.message_id].push(r);
+                    }
+                    
+                    let html = '<div class="space-y-3">';
+                    for (let msg of messages) {
+                        const time = formatTime(msg.created_at);
+                        html += `<div class="chat-message user" data-message-id="${msg.id}">
+                            <div class="chat-bubble user">
+                                <div>${escapeHtml(msg.message)}</div>
+                                ${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">` : ''}
+                                <div class="message-time">${time}</div>
+                            </div>
+                            <button class="reply-btn-on-message" onclick="setReplyingTo('${msg.id}', '${escapeHtml(msg.message).replace(/'/g, "\\'")}')">
+                                <i class="fas fa-reply"></i> 回复
+                            </button>
+                        </div>`;
+                        
+                        // 显示所有回复
+                        if (repliesByMsg[msg.id] && repliesByMsg[msg.id].length > 0) {
+                            html += `<div class="replies-container">`;
+                            for (let reply of repliesByMsg[msg.id]) {
+                                const replyTime = formatDateTime(reply.created_at);
+                                html += `<div class="reply-item">
+                                    <div class="reply-bubble">
+                                        <div>${escapeHtml(reply.reply)}</div>
+                                        ${reply.reply_image_url ? `<img src="${escapeHtml(reply.reply_image_url)}" class="reply-image" onclick="showImagePreview('${escapeHtml(reply.reply_image_url)}')">` : ''}
+                                        <div class="reply-time">${replyTime}</div>
+                                    </div>
+                                </div>`;
+                            }
+                            html += `</div>`;
+                        }
+                    }
+                    html += '</div>';
+                    document.getElementById('conversationPreview').innerHTML = html;
                     
                     // 重置回复状态
                     currentReplyingMessage = null;
-                    document.getElementById('replyingToBar').style.display = 'none';
+                    document.getElementById('replyingBar').style.display = 'none';
                     document.getElementById('replyInput').value = '';
                     document.getElementById('replyImagePreview').style.display = 'none';
                     pendingReplyImage = null;
@@ -343,67 +405,21 @@
                 }
             };
             
-            // 渲染消息列表
-            function renderMessages(messages) {
-                let html = '<div class="space-y-3">';
-                for (let msg of messages) {
-                    const time = formatTime(msg.created_at);
-                    // 用户消息
-                    html += `<div class="chat-message user" data-message-id="${msg.id}">
-                        <div class="chat-bubble user">
-                            <div>${escapeHtml(msg.message)}</div>
-                            ${msg.image_url ? `<img src="${escapeHtml(msg.image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.image_url)}')">` : ''}
-                            <div class="message-time">${time}</div>
-                        </div>
-                        <button class="reply-btn-on-message" onclick="setReplyingTo('${msg.id}', '${escapeHtml(msg.message).replace(/'/g, "\\'")}')">
-                            <i class="fas fa-reply"></i> 回复
-                        </button>
-                    </div>`;
-                    
-                    // 显示所有回复
-                    if (msg.reply && msg.reply.trim()) {
-                        const replies = msg.reply.split(/\n\n---\n/);
-                        for (let i = 0; i < replies.length; i++) {
-                            const reply = replies[i];
-                            const isFirst = i === 0;
-                            let replyText = reply;
-                            let replyTime = '';
-                            let replyMatch = reply.match(/\[新回复 (.*?)\]\n/);
-                            if (replyMatch) {
-                                replyTime = replyMatch[1];
-                                replyText = reply.replace(/\[新回复 .*?\]\n/, '');
-                            }
-                            const displayTime = replyTime || time;
-                            html += `<div class="chat-message admin">
-                                <div class="chat-bubble admin">
-                                    <div>${escapeHtml(replyText)}</div>
-                                    ${msg.reply_image_url ? `<img src="${escapeHtml(msg.reply_image_url)}" class="chat-image" onclick="showImagePreview('${escapeHtml(msg.reply_image_url)}')">` : ''}
-                                    <div class="message-time">${displayTime}</div>
-                                </div>
-                            </div>`;
-                        }
-                    }
-                }
-                html += '</div>';
-                document.getElementById('conversationPreview').innerHTML = html;
-            }
-            
             // 设置正在回复的消息
             window.setReplyingTo = function(messageId, messageText) {
                 currentReplyingMessage = { id: messageId, text: messageText };
                 document.getElementById('replyingToText').innerHTML = escapeHtml(messageText.substring(0, 50)) + (messageText.length > 50 ? '...' : '');
-                document.getElementById('replyingToBar').style.display = 'flex';
+                document.getElementById('replyingBar').style.display = 'flex';
                 document.getElementById('replyInput').focus();
             };
             
-            // 取消回复
             function cancelReplying() {
                 currentReplyingMessage = null;
-                document.getElementById('replyingToBar').style.display = 'none';
+                document.getElementById('replyingBar').style.display = 'none';
                 document.getElementById('replyInput').value = '';
             }
             
-            // 提交回复
+            // 提交回复（保存到回复表）
             async function submitReply() {
                 const reply = document.getElementById('replyInput').value.trim();
                 if (!reply && !pendingReplyImage) { 
@@ -423,52 +439,49 @@
                     document.getElementById('replyImagePreview').style.display = 'none';
                 }
                 
-                // 获取当前消息已有的回复内容
-                const { data: currentMsg } = await _supabase.from(TABLE_NAME).select('reply, reply_image_url').eq('id', currentReplyingMessage.id).single();
-                
-                let newReply = reply;
-                let newReplyImageUrl = imageUrl;
-                
-                // 如果已经有回复，追加新回复
-                if (currentMsg && currentMsg.reply && currentMsg.reply.trim()) {
-                    newReply = currentMsg.reply + '\n\n---\n[新回复 ' + new Date().toLocaleString() + ']\n' + reply;
-                    if (imageUrl && currentMsg.reply_image_url) {
-                        newReplyImageUrl = currentMsg.reply_image_url + ',' + imageUrl;
-                    } else if (imageUrl) {
-                        newReplyImageUrl = imageUrl;
-                    } else {
-                        newReplyImageUrl = currentMsg.reply_image_url;
-                    }
-                }
-                
-                const updateData = { 
-                    reply: newReply, 
-                    is_replied: true,
-                    reply_image_url: newReplyImageUrl
-                };
-                
-                const { error } = await _supabase.from(TABLE_NAME).update(updateData).eq('id', currentReplyingMessage.id);
+                const { error } = await _supabase.from(REPLIES_TABLE).insert([{
+                    message_id: currentReplyingMessage.id,
+                    reply: reply,
+                    reply_image_url: imageUrl,
+                    created_at: new Date().toISOString()
+                }]);
                 
                 if (error) { 
                     showToast('回复失败: ' + error.message, true); 
                 } else { 
                     showToast('回复成功！');
-                    // 清空输入并取消回复状态
                     document.getElementById('replyInput').value = '';
                     cancelReplying();
                     // 刷新对话
                     if (currentUserEmail) {
-                        const { data } = await _supabase.from(TABLE_NAME).select('*').eq('email', currentUserEmail).order('created_at', { ascending: true });
-                        if (data) renderMessages(data);
+                        window.openConversation(currentUserEmail);
                     }
                     renderConversations();
                 }
             }
             
             window.confirmDeleteUser = function(email) { pendingDeleteEmail = email; document.getElementById('deleteConfirmModal').classList.remove('hidden'); document.getElementById('deleteConfirmModal').classList.add('flex'); };
-            async function deleteUserConversations() { if (!pendingDeleteEmail) return; const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail); if (error) showToast('删除失败', true); else { showToast('已删除该用户所有对话'); renderConversations(); if (currentUserEmail === pendingDeleteEmail) document.getElementById('conversationModal').classList.add('hidden'); } document.getElementById('deleteConfirmModal').classList.add('hidden'); pendingDeleteEmail = null; }
+            async function deleteUserConversations() { 
+                if (!pendingDeleteEmail) return; 
+                const { data: messages } = await _supabase.from(TABLE_NAME).select('id').eq('email', pendingDeleteEmail);
+                if (messages && messages.length > 0) {
+                    const msgIds = messages.map(m => m.id);
+                    await _supabase.from(REPLIES_TABLE).delete().in('message_id', msgIds);
+                }
+                const { error } = await _supabase.from(TABLE_NAME).delete().eq('email', pendingDeleteEmail); 
+                if (error) showToast('删除失败', true); 
+                else { showToast('已删除该用户所有对话'); renderConversations(); if (currentUserEmail === pendingDeleteEmail) document.getElementById('conversationModal').classList.add('hidden'); } 
+                document.getElementById('deleteConfirmModal').classList.add('hidden'); 
+                pendingDeleteEmail = null; 
+            }
             
-            function setupRealtime() { if (realtimeChannel) _supabase.removeChannel(realtimeChannel); realtimeChannel = _supabase.channel('admin-realtime').on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => { renderConversations(); if (currentUserEmail) { _supabase.from(TABLE_NAME).select('*').eq('email', currentUserEmail).order('created_at', { ascending: true }).then(({ data }) => { if (data) renderMessages(data); }); } }).subscribe(); }
+            function setupRealtime() { 
+                if (realtimeChannel) _supabase.removeChannel(realtimeChannel); 
+                realtimeChannel = _supabase.channel('admin-realtime')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => { renderConversations(); if (currentUserEmail) window.openConversation(currentUserEmail); })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: REPLIES_TABLE }, () => { renderConversations(); if (currentUserEmail) window.openConversation(currentUserEmail); })
+                    .subscribe(); 
+            }
             
             // 绑定事件
             document.getElementById('refreshBtn').onclick = renderConversations;
@@ -478,11 +491,9 @@
             document.getElementById('cancelDeleteBtn').onclick = () => document.getElementById('deleteConfirmModal').classList.add('hidden');
             document.getElementById('confirmDeleteBtn').onclick = deleteUserConversations;
             
-            // Enter 键发送
             const replyInput = document.getElementById('replyInput');
             replyInput.onkeypress = (e) => { if (e.key === 'Enter') submitReply(); };
             
-            // 图片上传
             const attachReplyBtn = document.getElementById('attachReplyBtn');
             const replyImageInput = document.getElementById('replyImageInput');
             const replyImagePreview = document.getElementById('replyImagePreview');
