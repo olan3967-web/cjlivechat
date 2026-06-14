@@ -15,6 +15,8 @@
         .message-bubble { background: #e0e7ff; padding: 6px 12px; border-radius: 12px; display: inline-block; max-width: 100%; }
         .reply-bubble { background: #d1fae5; padding: 6px 12px; border-radius: 12px; display: inline-block; max-width: 100%; margin-top: 4px; }
         .toast-msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; z-index: 10002; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+        .new-message-badge { animation: pulse 0.5s; }
+        @keyframes pulse { 0% { background-color: #fee2e2; } 100% { background-color: transparent; } }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -22,7 +24,7 @@
     <nav class="bg-indigo-800 text-white px-6 py-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2"><i class="fas fa-tachometer-alt text-xl"></i><span class="font-bold text-xl">客服后台管理系统</span></div>
-            <div class="text-sm"><i class="fas fa-user-shield mr-1"></i>管理员</div>
+            <div class="text-sm"><i class="fas fa-user-shield mr-1"></i>管理员 | 实时模式</div>
         </div>
     </nav>
 
@@ -75,6 +77,8 @@
             let currentConversation = null;
             let currentUserEmail = null;
             let pendingDeleteEmail = null;
+            let realtimeChannel = null;
+            
             const toastEl = document.getElementById('toastMsg');
             
             function showToast(msg, isError = false) {
@@ -114,7 +118,7 @@
                     const hasUnread = group.messages.some(m => !m.reply || m.reply === '');
                     const lastTime = new Date(lastMsg.created_at).toLocaleString('zh-CN');
                     html += `
-                        <div class="conversation-item p-4 flex justify-between items-center" data-email="${escapeHtml(email)}">
+                        <div class="conversation-item p-4 flex justify-between items-center ${hasUnread ? 'new-message-badge' : ''}" data-email="${escapeHtml(email)}">
                             <div class="flex-1 cursor-pointer" onclick="openConversation('${escapeHtml(email)}')">
                                 <div class="font-semibold">${escapeHtml(group.name)}</div>
                                 <div class="text-sm text-gray-500">${escapeHtml(email)}</div>
@@ -183,17 +187,35 @@
                 }
             }
             
+            // 设置实时监听 - 监听所有变更
+            function setupRealtimeSubscription() {
+                if (realtimeChannel) {
+                    supabase.removeChannel(realtimeChannel);
+                }
+                
+                realtimeChannel = supabase
+                    .channel('admin-realtime')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: TABLE_NAME }, 
+                        (payload) => {
+                            console.log('后台收到实时变更:', payload);
+                            renderConversations();
+                        }
+                    )
+                    .subscribe((status) => {
+                        console.log('后台实时订阅状态:', status);
+                    });
+            }
+            
             document.getElementById('refreshBtn').onclick = renderConversations;
             document.getElementById('closeModalBtn').onclick = () => { document.getElementById('replyModal').classList.add('hidden'); document.getElementById('replyModal').classList.remove('flex'); };
             document.getElementById('submitReplyBtn').onclick = submitReply;
             document.getElementById('cancelDeleteBtn').onclick = () => { document.getElementById('deleteConfirmModal').classList.add('hidden'); document.getElementById('deleteConfirmModal').classList.remove('flex'); pendingDeleteEmail = null; };
             document.getElementById('confirmDeleteBtn').onclick = deleteUserConversations;
             
+            // 初始化
             renderConversations();
-            
-            const channel = supabase.channel('public-admin-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => { renderConversations(); })
-                .subscribe();
+            setupRealtimeSubscription();
         })();
     </script>
 </body>
