@@ -159,7 +159,7 @@
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             
-            // 聊天选项配置 - 可以在这里自定义
+            // 聊天选项配置
             const CHAT_OPTIONS = {
                 language: {
                     title: "🌏 请选择语言 / Please select language",
@@ -190,7 +190,6 @@
             let currentUser = null;
             let realtimeChannel = null;
             let pendingImageFile = null;
-            let optionStep = 'language';
             
             // DOM
             const userInfoModal = document.getElementById('userInfoModal');
@@ -293,10 +292,32 @@
                 if (!currentUser) return;
                 const { data: messages } = await supabase.from('livechat_messages').select('*').eq('email', currentUser.email).order('created_at', { ascending: true });
                 if (!messages) return;
-                messagesArea.innerHTML = '';
-                for (let msg of messages) {
-                    addMessage(msg.message, true, formatTime(msg.created_at), msg.image_url);
+                
+                // 获取所有回复
+                const msgIds = messages.map(m => m.id);
+                const { data: replies } = await supabase.from('message_replies').select('*').in('message_id', msgIds).order('created_at', { ascending: true });
+                
+                const repliesByMsg = {};
+                if (replies) {
+                    for (let r of replies) {
+                        if (!repliesByMsg[r.message_id]) repliesByMsg[r.message_id] = [];
+                        repliesByMsg[r.message_id].push(r);
+                    }
                 }
+                
+                messagesArea.innerHTML = '';
+                
+                for (let msg of messages) {
+                    // 用户消息
+                    addMessage(msg.message, true, formatTime(msg.created_at), msg.image_url);
+                    // 该消息的所有回复
+                    if (repliesByMsg[msg.id]) {
+                        for (let r of repliesByMsg[msg.id]) {
+                            addMessage(r.reply, false, new Date(r.created_at).toLocaleTimeString(), r.reply_image_url);
+                        }
+                    }
+                }
+                
                 if (messages.length === 0) {
                     addMessage("您好！请选择您的语言 / Please select your language:", false);
                     addOptionsButtons(CHAT_OPTIONS.language);
@@ -304,19 +325,35 @@
                 scrollBottom();
             }
             
+            // 实时监听新回复
             function setupRealtime() {
                 if (realtimeChannel) supabase.removeChannel(realtimeChannel);
-                realtimeChannel = supabase.channel(`user-${currentUser.email}`)
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_replies' }, async () => {
-                        const { data: msgs } = await supabase.from('livechat_messages').select('id').eq('email', currentUser.email);
-                        if (msgs && msgs.length) {
-                            const { data: newReplies } = await supabase.from('message_replies').select('*').in('message_id', msgs.map(m => m.id)).order('created_at', { ascending: false }).limit(1);
-                            if (newReplies && newReplies[0]) {
-                                addMessage(newReplies[0].reply, false, new Date().toLocaleTimeString());
-                                showToast('收到客服回复');
-                            }
+                
+                // 先获取当前用户的所有消息ID
+                const getMessageIds = async () => {
+                    if (!currentUser) return [];
+                    const { data } = await supabase.from('livechat_messages').select('id').eq('email', currentUser.email);
+                    return data ? data.map(m => m.id) : [];
+                };
+                
+                realtimeChannel = supabase.channel(`user-replies-${currentUser?.email || 'unknown'}`)
+                    .on('postgres_changes', { 
+                        event: 'INSERT', 
+                        schema: 'public', 
+                        table: 'message_replies' 
+                    }, async (payload) => {
+                        // 检查这条回复是否属于当前用户的消息
+                        const userMsgIds = await getMessageIds();
+                        if (userMsgIds.includes(payload.new.message_id)) {
+                            console.log('收到属于当前用户的回复:', payload.new);
+                            addMessage(payload.new.reply, false, new Date().toLocaleTimeString(), payload.new.reply_image_url);
+                            showToast('收到客服回复');
+                            scrollBottom();
                         }
-                    }).subscribe();
+                    })
+                    .subscribe((status) => {
+                        console.log('实时订阅状态:', status);
+                    });
             }
             
             // 图片上传处理
@@ -351,8 +388,15 @@
             };
             
             function openChat() {
-                if (!currentUser) userInfoModal.classList.add('show');
-                else { chatWidget.classList.add('open'); loadHistory(); msgInput.focus(); }
+                if (!currentUser) {
+                    userInfoModal.classList.add('show');
+                } else {
+                    chatWidget.classList.add('open');
+                    loadHistory();
+                    // 确保实时订阅已启动
+                    if (!realtimeChannel) setupRealtime();
+                    msgInput.focus();
+                }
             }
             
             document.getElementById('openChatBtn').onclick = openChat;
