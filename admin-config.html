@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台配置 | 聊天选项管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f3f4f6; }
+        .config-card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+        .option-item { background: #f9fafb; padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .option-item input { flex: 1; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; }
+        .btn { background: #FF5F00; color: white; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+        .btn-secondary { background: #6b7280; }
+        .btn-danger { background: #ef4444; }
+        .preview-area { background: #1a1a2e; color: white; padding: 16px; border-radius: 12px; margin-top: 20px; }
+        .preview-option { display: inline-block; background: #FF5F00; padding: 6px 12px; border-radius: 20px; margin: 4px; font-size: 12px; }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-2">🤖 聊天选项配置</h1>
+        <p class="text-gray-500 mb-6">配置聊天框内的快捷选项按钮（语言、付款方式、常见问题等）</p>
+        
+        <!-- 语言选项组 -->
+        <div class="config-card">
+            <h2 class="font-bold text-lg mb-3">🌏 语言选项 (Language)</h2>
+            <div id="languageOptions"></div>
+            <button id="addLanguageBtn" class="btn btn-secondary text-sm mt-2">+ 添加语言选项</button>
+        </div>
+        
+        <!-- 付款方式选项组 -->
+        <div class="config-card">
+            <h2 class="font-bold text-lg mb-3">💳 付款方式选项 (Payment)</h2>
+            <div id="paymentOptions"></div>
+            <button id="addPaymentBtn" class="btn btn-secondary text-sm mt-2">+ 添加付款方式</button>
+        </div>
+        
+        <!-- 常见问题选项组 -->
+        <div class="config-card">
+            <h2 class="font-bold text-lg mb-3">❓ 常见问题选项 (FAQ)</h2>
+            <div id="faqOptions"></div>
+            <button id="addFaqBtn" class="btn btn-secondary text-sm mt-2">+ 添加常见问题</button>
+        </div>
+        
+        <!-- 保存按钮 -->
+        <div class="flex gap-4 mt-4">
+            <button id="saveBtn" class="btn">💾 保存配置</button>
+            <button id="resetBtn" class="btn-secondary btn">↺ 恢复默认</button>
+        </div>
+        
+        <!-- 预览区域 -->
+        <div class="preview-area">
+            <p class="text-sm opacity-70 mb-2">📱 聊天框预览效果</p>
+            <div id="previewContainer"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 默认配置
+        const DEFAULT_CONFIG = {
+            language: {
+                title: "🌏 请选择语言 / Please select language",
+                options: [
+                    { text: "English", value: "en", reply: "I prefer English" },
+                    { text: "Bahasa Melayu", value: "ms", reply: "Saya pilih Bahasa Melayu" },
+                    { text: "中文", value: "zh", reply: "我选择中文" }
+                ]
+            },
+            payment: {
+                title: "💳 请选择付款方式 / Select payment method",
+                options: [
+                    { text: "Touch n Go / GrabPay", value: "tng", reply: "我要用 Touch n Go / GrabPay 付款" },
+                    { text: "银行转账 / FPX", value: "bank", reply: "我要用银行转账 / FPX" },
+                    { text: "信用卡 / Credit Card", value: "card", reply: "我要用信用卡付款" }
+                ]
+            },
+            faq: {
+                title: "❓ 常见问题 / FAQ",
+                options: [
+                    { text: "📦 物流查询", value: "tracking", reply: "我想查询物流信息" },
+                    { text: "🔄 退换货政策", value: "return", reply: "请问退换货政策是什么？" },
+                    { text: "🎁 优惠活动", value: "promo", reply: "有什么优惠活动？" }
+                ]
+            }
+        };
+        
+        let currentConfig = JSON.parse(localStorage.getItem('chat_config') || JSON.stringify(DEFAULT_CONFIG));
+        
+        function renderOptions(containerId, optionsArray, groupName) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            optionsArray.forEach((opt, index) => {
+                const div = document.createElement('div');
+                div.className = 'option-item';
+                div.innerHTML = `
+                    <input type="text" class="option-text" value="${escapeHtml(opt.text)}" placeholder="显示文字" style="width:180px">
+                    <input type="text" class="option-value" value="${escapeHtml(opt.value)}" placeholder="标识" style="width:120px">
+                    <input type="text" class="option-reply" value="${escapeHtml(opt.reply)}" placeholder="点击后发送的消息" style="flex:1">
+                    <button class="remove-option btn-danger btn text-sm" style="padding:6px 12px">删除</button>
+                `;
+                const removeBtn = div.querySelector('.remove-option');
+                removeBtn.onclick = () => {
+                    optionsArray.splice(index, 1);
+                    renderOptions(containerId, optionsArray, groupName);
+                    updatePreview();
+                };
+                container.appendChild(div);
+            });
+        }
+        
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m=>'&' + { '&':'amp', '<':'lt', '>':'gt' }[m] + ';'); }
+        
+        function updatePreview() {
+            const preview = document.getElementById('previewContainer');
+            preview.innerHTML = '<div class="text-sm mb-2">💬 客服消息示例：</div>';
+            for (let group of ['language', 'payment', 'faq']) {
+                const config = currentConfig[group];
+                if (config && config.options) {
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'text-xs opacity-70 mt-3 mb-1';
+                    titleDiv.textContent = config.title;
+                    preview.appendChild(titleDiv);
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.className = 'flex flex-wrap gap-2';
+                    config.options.forEach(opt => {
+                        const badge = document.createElement('span');
+                        badge.className = 'preview-option';
+                        badge.textContent = opt.text;
+                        optionsDiv.appendChild(badge);
+                    });
+                    preview.appendChild(optionsDiv);
+                }
+            }
+        }
+        
+        function saveConfig() {
+            // 从DOM收集数据
+            const groups = ['language', 'payment', 'faq'];
+            for (let group of groups) {
+                const container = document.getElementById(`${group}Options`);
+                const items = container.querySelectorAll('.option-item');
+                const newOptions = [];
+                items.forEach(item => {
+                    const text = item.querySelector('.option-text').value.trim();
+                    const value = item.querySelector('.option-value').value.trim();
+                    const reply = item.querySelector('.option-reply').value.trim();
+                    if (text && value && reply) {
+                        newOptions.push({ text, value, reply });
+                    }
+                });
+                if (newOptions.length > 0) {
+                    currentConfig[group].options = newOptions;
+                }
+            }
+            localStorage.setItem('chat_config', JSON.stringify(currentConfig));
+            showToast('配置已保存！请刷新首页查看效果');
+            updatePreview();
+        }
+        
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm z-50';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+        
+        function resetConfig() {
+            currentConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+            localStorage.setItem('chat_config', JSON.stringify(currentConfig));
+            loadToUI();
+            showToast('已恢复默认配置');
+        }
+        
+        function loadToUI() {
+            renderOptions('languageOptions', currentConfig.language.options, 'language');
+            renderOptions('paymentOptions', currentConfig.payment.options, 'payment');
+            renderOptions('faqOptions', currentConfig.faq.options, 'faq');
+            updatePreview();
+        }
+        
+        // 添加新选项
+        document.getElementById('addLanguageBtn').onclick = () => {
+            currentConfig.language.options.push({ text: '新语言', value: 'new', reply: '我选择了新语言' });
+            loadToUI();
+        };
+        document.getElementById('addPaymentBtn').onclick = () => {
+            currentConfig.payment.options.push({ text: '新付款方式', value: 'new', reply: '我选择新付款方式' });
+            loadToUI();
+        };
+        document.getElementById('addFaqBtn').onclick = () => {
+            currentConfig.faq.options.push({ text: '新问题', value: 'new', reply: '我想问新问题' });
+            loadToUI();
+        };
+        document.getElementById('saveBtn').onclick = saveConfig;
+        document.getElementById('resetBtn').onclick = resetConfig;
+        
+        loadToUI();
+    </script>
+</body>
+</html>
