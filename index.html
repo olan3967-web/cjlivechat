@@ -110,12 +110,76 @@
             100% { transform: scale(1); opacity: 1; }
         }
         
-        .info-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10003; }
+        /* 用户信息弹窗 */
+        .info-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10003;
+        }
         .info-modal.show { display: flex; }
-        .info-card { background: white; border-radius: 32px; padding: 28px; width: 440px; max-width: 90%; }
-        .info-card input { width: 100%; border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px 18px; margin-bottom: 16px; }
-        .info-card input:focus { border-color: #FF5F00; outline: none; }
-        .start-btn { background: #FF5F00; color: white; width: 100%; padding: 12px; border-radius: 40px; font-weight: 700; border: none; cursor: pointer; }
+        .info-card {
+            background: white;
+            border-radius: 32px;
+            padding: 32px;
+            width: 460px;
+            max-width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .info-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #FF5F00;
+            margin-bottom: 8px;
+        }
+        .info-card input, .info-card textarea {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            outline: none;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .info-card textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .info-card input:focus, .info-card textarea:focus {
+            border-color: #FF5F00;
+            box-shadow: 0 0 0 3px rgba(255,95,0,0.1);
+        }
+        .start-btn {
+            background: #FF5F00;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .start-btn:hover { background: #e04e00; }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+        .required-star {
+            color: #ef4444;
+            margin-left: 2px;
+        }
+        
         .toast-msg { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 6px 16px; border-radius: 40px; font-size: 12px; opacity: 0; transition: 0.2s; z-index: 10004; pointer-events: none; }
         
         .image-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 20000; cursor: pointer; }
@@ -181,16 +245,30 @@
         </div>
     </div>
 
-    <!-- 用户信息弹窗 -->
+    <!-- 用户信息弹窗（姓名、邮箱、手机号、送货地址） -->
     <div id="userInfoModal" class="info-modal">
         <div class="info-card text-center">
             <i class="fas fa-user-circle text-5xl text-brand-orange mb-3"></i>
-            <h3 class="text-2xl font-bold">联系客服</h3>
+            <h3>填写信息开始对话</h3>
+            <p class="text-gray-400 text-sm mb-4">客服将根据您提供的信息为您服务</p>
             <form id="userInfoForm">
-                <input type="text" id="userName" placeholder="您的称呼" required>
-                <input type="email" id="userEmail" placeholder="电子邮箱" required>
-                <input type="tel" id="userPhone" placeholder="手机号" required>
-                <button type="submit" class="start-btn">开始对话</button>
+                <div>
+                    <label class="form-label">姓名 <span class="required-star">*</span></label>
+                    <input type="text" id="userName" placeholder="请输入您的姓名" required>
+                </div>
+                <div>
+                    <label class="form-label">邮箱 <span class="required-star">*</span></label>
+                    <input type="email" id="userEmail" placeholder="example@email.com" required>
+                </div>
+                <div>
+                    <label class="form-label">手机号 <span class="required-star">*</span></label>
+                    <input type="tel" id="userPhone" placeholder="012-3456789" required>
+                </div>
+                <div>
+                    <label class="form-label">送货地址</label>
+                    <textarea id="userAddress" rows="2" placeholder="请输入您的送货地址（选填）"></textarea>
+                </div>
+                <button type="submit" class="start-btn">开始对话 <i class="fas fa-arrow-right ml-1"></i></button>
             </form>
         </div>
     </div>
@@ -236,8 +314,8 @@
             let currentUser = null;
             let realtimeChannel = null;
             let pendingImageFile = null;
-            let unreadCount = 0;  // 未读消息数量
-            let isChatOpen = false;  // 聊天窗口是否打开
+            let unreadCount = 0;
+            let isChatOpen = false;
             
             // DOM
             const userInfoModal = document.getElementById('userInfoModal');
@@ -261,7 +339,6 @@
             window.showImage = (url) => { viewerImg.src = url; viewer.classList.add('show'); };
             window.closeImageViewer = () => viewer.classList.remove('show');
             
-            // 更新未读徽章显示
             function updateUnreadBadge() {
                 if (unreadCount > 0 && !isChatOpen) {
                     unreadBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
@@ -273,13 +350,11 @@
                 }
             }
             
-            // 增加未读计数
             function incrementUnread() {
                 unreadCount++;
                 updateUnreadBadge();
             }
             
-            // 重置未读计数（打开聊天窗口时调用）
             function resetUnreadCount() {
                 unreadCount = 0;
                 updateUnreadBadge();
@@ -337,8 +412,13 @@
             async function saveUserMessage(message, imageUrl) {
                 if (!currentUser) return;
                 const { error } = await supabase.from('livechat_messages').insert([{
-                    name: currentUser.name, email: currentUser.email, phone: currentUser.phone,
-                    message: message || '', image_url: imageUrl, created_at: new Date().toISOString()
+                    name: currentUser.name,
+                    email: currentUser.email,
+                    phone: currentUser.phone,
+                    address: currentUser.address || '',
+                    message: message || '',
+                    image_url: imageUrl,
+                    created_at: new Date().toISOString()
                 }]);
                 if (error) console.error('保存失败', error);
             }
@@ -389,13 +469,12 @@
                 }
                 
                 if (messages.length === 0) {
-                    addMessage("您好！请选择您的语言 / Please select your language:", false);
+                    addMessage(`您好 ${currentUser.name}！我是CJ客服助手，请问有什么可以帮助您的？`, false);
                     addOptionsButtons(CHAT_OPTIONS.language);
                 }
                 scrollBottom();
             }
             
-            // 实时监听新回复
             function setupRealtime() {
                 if (realtimeChannel) supabase.removeChannel(realtimeChannel);
                 
@@ -413,13 +492,10 @@
                     }, async (payload) => {
                         const userMsgIds = await getMessageIds();
                         if (userMsgIds.includes(payload.new.message_id)) {
-                            console.log('收到属于当前用户的回复:', payload.new);
-                            // 如果聊天窗口是打开的，直接显示消息
                             if (isChatOpen) {
                                 addMessage(payload.new.reply, false, new Date().toLocaleTimeString(), payload.new.reply_image_url);
                                 scrollBottom();
                             } else {
-                                // 聊天窗口关闭时，增加未读计数并显示徽章
                                 incrementUnread();
                                 showToast('收到客服新回复');
                             }
@@ -430,7 +506,6 @@
                     });
             }
             
-            // 图片上传处理
             attachBtn.onclick = () => imageInput.click();
             imageInput.onchange = (e) => {
                 if (e.target.files && e.target.files[0]) {
@@ -442,34 +517,66 @@
             };
             removeImgBtn.onclick = () => { pendingImageFile = null; previewArea.style.display = 'none'; imageInput.value = ''; };
             
-            // 用户登录
+            // 检查本地存储是否有用户信息
             const saved = localStorage.getItem('chat_user');
-            if (saved) { try { currentUser = JSON.parse(saved); } catch(e) {} }
+            if (saved) {
+                try {
+                    const user = JSON.parse(saved);
+                    if (user && user.email && user.name && user.phone) {
+                        currentUser = user;
+                        userInfoModal.classList.remove('show');
+                        loadHistory();
+                        setupRealtime();
+                    }
+                } catch(e) {}
+            }
             
+            // 提交用户信息表单
             document.getElementById('userInfoForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('userName').value.trim();
                 const email = document.getElementById('userEmail').value.trim();
                 const phone = document.getElementById('userPhone').value.trim();
-                if (!name || !email || !phone) { showToast('请填写完整信息'); return; }
-                currentUser = { id: Date.now().toString(), name, email, phone };
+                const address = document.getElementById('userAddress').value.trim();
+                
+                if (!name || !email || !phone) {
+                    showToast('请填写完整信息', true);
+                    return;
+                }
+                if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+                    showToast('请输入有效的邮箱地址', true);
+                    return;
+                }
+                if (!/^[0-9+\-\s]{8,15}$/.test(phone)) {
+                    showToast('请输入有效的手机号码', true);
+                    return;
+                }
+                
+                currentUser = {
+                    id: Date.now().toString(),
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    address: address || ''
+                };
                 localStorage.setItem('chat_user', JSON.stringify(currentUser));
                 userInfoModal.classList.remove('show');
                 chatWidget.classList.add('open');
                 isChatOpen = true;
-                resetUnreadCount();  // 打开聊天时重置未读计数
+                resetUnreadCount();
                 setupRealtime();
                 await loadHistory();
                 msgInput.focus();
+                showToast(`欢迎 ${name}！客服已在线`);
             };
             
             function openChat() {
-                if (!currentUser) {
+                if (!currentUser || !currentUser.name || !currentUser.phone) {
                     userInfoModal.classList.add('show');
                 } else {
                     chatWidget.classList.add('open');
                     isChatOpen = true;
-                    resetUnreadCount();  // 打开聊天时重置未读计数
+                    resetUnreadCount();
                     loadHistory();
                     if (!realtimeChannel) setupRealtime();
                     msgInput.focus();
@@ -479,7 +586,6 @@
             function closeChat() {
                 chatWidget.classList.remove('open');
                 isChatOpen = false;
-                // 关闭时不清除未读计数，保留已有未读
             }
             
             document.getElementById('openChatBtn').onclick = openChat;
