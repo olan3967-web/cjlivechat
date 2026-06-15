@@ -34,11 +34,6 @@
         .user-item:hover .delete-btn { opacity: 1; }
         
         /* 持续闪烁动画 */
-        @keyframes flashYellow {
-            0% { background-color: #ffffff; }
-            50% { background-color: #fef08a; }
-            100% { background-color: #ffffff; }
-        }
         @keyframes flashYellowRepeat {
             0% { background-color: #ffffff; }
             30% { background-color: #fef08a; }
@@ -371,7 +366,7 @@
                     const isFlashing = unreadCount > 0 && currentUserEmail !== email;
                     
                     html += `
-                        <div class="user-item" id="user-${email.replace(/[@.]/g, '-')}" data-email="${escapeHtml(email)}">
+                        <div class="user-item ${isFlashing ? 'flashing' : ''}" id="user-${email.replace(/[@.]/g, '-')}" data-email="${escapeHtml(email)}">
                             <div class="user-info" onclick="window.openUserChat('${escapeHtml(email)}')">
                                 <div class="user-name">
                                     ${escapeHtml(u.name)}
@@ -478,7 +473,7 @@
                 let imageUrl = null;
                 if (pendingImageFile) {
                     imageUrl = await uploadImage(pendingImageFile);
-                    if (!imageUrl) { showToast('图片上传失败', true); return; }
+                    if (!imageUrl) { showToast('图片上传失败'); return; }
                 }
                 
                 const lastMsgId = msgs[0].id;
@@ -495,7 +490,7 @@
                     document.getElementById('msgInput').value = '';
                     document.getElementById('imagePreviewArea').style.display = 'none';
                     pendingImageFile = null;
-                    showToast('已发送');
+                    showToast('✅ 回复成功');  // ← 保留弹窗提示
                     await loadChatMessages(currentUserEmail);
                     await loadUsers();
                 }
@@ -591,7 +586,6 @@
             document.getElementById('refreshBtn').onclick = loadUsers;
             document.getElementById('closeChatBtn').onclick = () => {
                 document.getElementById('chatModal').classList.remove('show');
-                // 关闭时不清除 currentUserEmail，但停止闪烁会在下次打开时处理
             };
             document.getElementById('sendBtn').onclick = sendReply;
             document.getElementById('cancelDeleteBtn').onclick = () => document.getElementById('deleteModal').classList.remove('show');
