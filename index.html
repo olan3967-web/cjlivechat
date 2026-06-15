@@ -1,36 +1,35 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-MY">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CJ限时特卖 | 品质好物 全场折扣</title>
-    <!-- Tailwind CSS + Google Fonts + Font Awesome -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CJ 限时特卖 | 大马免运 品质好物</title>
+    <!-- Tailwind + Google Font + Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #ffffff; scroll-behavior: smooth; }
+        body { font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif; background: #ffffff; scroll-behavior: smooth; }
         .brand-orange { color: #FF5F00; }
         .bg-brand-orange { background-color: #FF5F00; }
         .border-brand-orange { border-color: #FF5F00; }
-        .hover\:bg-brand-dark:hover { background-color: #e04e00; }
+        .hover-bg-orange:hover { background-color: #e04e00; transition: 0.2s; }
         .gradient-hero {
-            background: linear-gradient(135deg, #fff8f2 0%, #ffffff 100%);
+            background: linear-gradient(145deg, #fffaf5 0%, #ffffff 100%);
         }
         .price-striked {
-            font-size: 1rem;
-            color: #9ca3af;
+            font-size: 0.9rem;
+            color: #a0aec0;
             text-decoration: line-through;
-            margin-right: 8px;
+            margin-right: 6px;
         }
         .discount-badge {
             background: #FF5F00;
             color: white;
             font-size: 0.7rem;
-            font-weight: 600;
+            font-weight: 700;
             padding: 2px 8px;
             border-radius: 20px;
             display: inline-block;
@@ -40,618 +39,417 @@
             border: 1px solid #f0f0f0;
         }
         .product-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-5px);
             box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.08);
             border-color: #FF5F00;
         }
-        .chat-interface {
-            position: fixed; bottom: 0; left: 0; right: 0; top: 0;
-            background: #ffffff; z-index: 10000; display: none; flex-direction: column;
+        /* 电脑版聊天窗 (右下角弹窗, 非全屏) */
+        .chat-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 380px;
+            max-width: calc(100vw - 32px);
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.25);
+            z-index: 10001;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255,95,0,0.2);
         }
-        .chat-interface.open { display: flex; }
+        .chat-widget.open {
+            display: flex;
+        }
         .chat-header {
-            background: #1a1a2e; color: white; padding: 16px 20px;
-            display: flex; align-items: center; gap: 12px;
+            background: #1a1a2e;
+            color: white;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .messages-container { flex: 1; overflow-y: auto; padding: 20px; background: #f8f9fc; display: flex; flex-direction: column; gap: 12px; }
-        .message { display: flex; max-width: 80%; margin-bottom: 4px; }
+        .chat-header h4 { font-weight: 600; font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 6px; }
+        .close-chat {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .chat-messages-area {
+            height: 380px;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f8f9fc;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message { display: flex; max-width: 85%; margin-bottom: 4px; }
         .message.user { align-self: flex-end; justify-content: flex-end; }
         .message.admin { align-self: flex-start; }
-        .bubble { padding: 10px 14px; border-radius: 18px; word-wrap: break-word; max-width: 100%; }
+        .bubble { padding: 8px 12px; border-radius: 18px; font-size: 13px; word-wrap: break-word; }
         .user .bubble { background: #FF5F00; color: white; border-bottom-right-radius: 4px; }
-        .admin .bubble { background: white; color: #1f2937; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .message-time { font-size: 10px; margin-top: 4px; color: #9ca3af; }
+        .admin .bubble { background: white; color: #1f2937; border: 1px solid #eaeef2; border-bottom-left-radius: 4px; }
+        .message-time { font-size: 9px; margin-top: 4px; color: #9ca3af; }
         .user .message-time { text-align: right; }
-        .replies { margin-top: 8px; margin-right: 20px; border-right: 2px solid #FF5F00; padding-right: 12px; }
-        .reply-item { margin-top: 8px; display: flex; justify-content: flex-start; }
-        .reply-bubble { background: white; color: #1f2937; padding: 8px 12px; border-radius: 18px; font-size: 12px; max-width: 80%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 2px solid #FF5F00; }
-        .input-area { background: white; border-top: 1px solid #eef2f6; padding: 12px 16px; display: flex; gap: 12px; align-items: center; }
-        .input-wrapper { flex: 1; display: flex; gap: 8px; align-items: center; background: #f2f4f8; border-radius: 28px; padding: 4px 8px 4px 16px; }
-        .input-wrapper input { flex: 1; background: transparent; border: none; padding: 10px 0; outline: none; font-size: 15px; }
-        .send-btn { background: #FF5F00; border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .send-btn:hover { background: #e04e00; transform: scale(1.02); }
-        .info-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10001; }
-        .info-modal.show { display: flex; }
-        .info-card { background: white; border-radius: 32px; padding: 28px; width: 460px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
-        .info-card h3 { font-size: 26px; font-weight: 700; color: #FF5F00; margin-bottom: 8px; }
-        .info-card input, .info-card textarea { width: 100%; border: 1px solid #e9eef3; border-radius: 20px; padding: 12px 18px; margin-bottom: 16px; outline: none; transition: 0.2s; font-family: inherit; }
-        .info-card input:focus, .info-card textarea:focus { border-color: #FF5F00; box-shadow: 0 0 0 3px rgba(255,95,0,0.1); }
-        .start-btn { width: 100%; background: #FF5F00; color: white; border: none; padding: 14px; border-radius: 40px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .start-btn:hover { background: #e04e00; }
-        .landing-chat-btn { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background: #FF5F00; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 20px rgba(255,95,0,0.4); z-index: 9999; transition: 0.2s; }
-        .landing-chat-btn:hover { transform: scale(1.08); background: #e04e00; }
-        .toast-msg { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 8px 18px; border-radius: 40px; font-size: 13px; opacity: 0; transition: 0.2s; z-index: 10002; pointer-events: none; white-space: nowrap; }
-        .flash-sale-bar { background: #FFF1E6; border-radius: 40px; display: inline-flex; align-items: center; gap: 12px; padding: 6px 18px; }
-        .timer-number { background: #FF5F00; color: white; border-radius: 8px; padding: 2px 8px; font-weight: 700; font-size: 18px; }
-        .btn-outline-orange { border: 1px solid #FF5F00; color: #FF5F00; background: transparent; transition: 0.2s; }
-        .btn-outline-orange:hover { background: #FF5F00; color: white; }
-        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-up { animation: fadeSlideUp 0.3s ease-out; }
-    </style>
-</head>
-<body>
-
-    <!-- 导航栏 / 白底+橙色点缀 -->
-    <nav class="bg-white/95 backdrop-blur-sm fixed top-0 left-0 w-full z-50 border-b border-gray-100 shadow-sm">
-        <div class="container mx-auto px-5 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-brand-orange rounded-xl flex items-center justify-center shadow-sm">
-                    <i class="fas fa-fire text-white text-sm"></i>
-                </div>
-                <span class="font-extrabold text-xl tracking-tight">CJ<span class="text-brand-orange">·OFF</span></span>
-            </div>
-            <div class="hidden md:flex gap-6 text-sm font-medium text-gray-700">
-                <a href="#" class="hover:text-brand-orange transition">首页</a>
-                <a href="#products" class="hover:text-brand-orange transition">热卖爆款</a>
-                <a href="#why" class="hover:text-brand-orange transition">品质保障</a>
-            </div>
-            <button id="openChatNavBtn" class="bg-brand-orange text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm hover:shadow-md transition flex items-center gap-1">
-                <i class="fas fa-headset"></i> 客服
-            </button>
-        </div>
-    </nav>
-
-    <!-- HERO 限时抢购区域 -->
-    <section class="pt-28 pb-12 md:pt-32 gradient-hero">
-        <div class="container mx-auto px-5 max-w-6xl">
-            <div class="flex flex-col md:flex-row items-center gap-10">
-                <div class="flex-1 text-center md:text-left">
-                    <div class="flash-sale-bar mb-5">
-                        <i class="fas fa-bolt text-brand-orange text-sm"></i>
-                        <span class="text-xs font-semibold text-gray-700">限时闪购</span>
-                        <div class="flex gap-1 text-sm font-mono font-bold"><span id="hour">00</span>:<span id="minute">00</span>:<span id="second">00</span></div>
-                    </div>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight">高质感<span class="text-brand-orange"> 智能生活</span> 系列</h1>
-                    <p class="text-gray-500 text-lg mt-4 max-w-lg mx-auto md:mx-0">德国工艺 · 原装品质 · 限时低至5折</p>
-                    <div class="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
-                        <div class="bg-gray-50 px-5 py-2 rounded-full flex items-center gap-2"><i class="fas fa-truck text-brand-orange"></i><span class="text-sm font-medium">极速发货</span></div>
-                        <div class="bg-gray-50 px-5 py-2 rounded-full flex items-center gap-2"><i class="fas fa-shield-alt text-brand-orange"></i><span class="text-sm font-medium">两年质保</span></div>
-                        <div class="bg-gray-50 px-5 py-2 rounded-full flex items-center gap-2"><i class="fas fa-undo-alt text-brand-orange"></i><span class="text-sm font-medium">7天无理由</span></div>
-                    </div>
-                    <div class="mt-8">
-                        <button id="heroChatBtn" class="bg-brand-orange text-white px-8 py-3 rounded-full font-bold text-lg shadow-md hover:shadow-lg transition flex items-center gap-2 mx-auto md:mx-0"><i class="fas fa-gift"></i> 咨询优惠</button>
-                    </div>
-                </div>
-                <div class="flex-1 relative">
-                    <div class="bg-white rounded-3xl shadow-2xl p-3 border border-gray-100">
-                        <img src="https://placehold.co/600x500/f8f9fc/FF5F00?text=Premium+Product" alt="主力商品" class="rounded-2xl w-full object-cover">
-                        <div class="absolute top-4 left-4 bg-brand-orange text-white px-4 py-1 rounded-full text-sm font-bold shadow-md">-40% OFF</div>
-                        <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold shadow">🔥 今日已售 1.2k+</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 产品列表区域 主白+橙色价格/折扣 (可自由增删商品) -->
-    <section id="products" class="py-16 bg-white">
-        <div class="container mx-auto px-5 max-w-6xl">
-            <div class="text-center mb-10">
-                <span class="text-brand-orange font-semibold tracking-wide">精选好物</span>
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-2">爆款直降 <span class="border-b-4 border-brand-orange">最后补货</span></h2>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
-                <!-- 商品1 - 可任意修改图片/名称/价格/折扣 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Smart+Watch" class="w-full rounded-lg" alt="智能手表"><span class="absolute top-2 left-2 discount-badge">-30%</span></div>
-                    <h3 class="font-bold text-lg">极光系列 智能手表</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$89.99</span><span class="price-striked">$129.99</span><span class="text-xs text-green-600">含税包邮</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star-half-alt text-yellow-400 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.8星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品2 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Noise+Cancelling" class="w-full rounded-lg" alt="降噪耳机"><span class="absolute top-2 left-2 discount-badge">-25%</span></div>
-                    <h3 class="font-bold text-lg">ANC主动降噪耳机</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$119.99</span><span class="price-striked">$159.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.9星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品3 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Magnetic+Charger" class="w-full rounded-lg" alt="磁吸充电宝"><span class="absolute top-2 left-2 discount-badge">-50%</span></div>
-                    <h3 class="font-bold text-lg">磁吸充电宝 10000mAh</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$29.99</span><span class="price-striked">$59.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="far fa-star text-gray-300 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.6星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品4 - 示例新增商品 (自由增删) -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Wireless+Mouse" class="w-full rounded-lg" alt="无线鼠标"><span class="absolute top-2 left-2 discount-badge">-20%</span></div>
-                    <h3 class="font-bold text-lg">人体工学静音鼠标</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$24.99</span><span class="price-striked">$31.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="far fa-star text-gray-300 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.7星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品5 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Fast+Charger" class="w-full rounded-lg" alt="氮化镓充电器"><span class="absolute top-2 left-2 discount-badge">-35%</span></div>
-                    <h3 class="font-bold text-lg">65W氮化镓快充头</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$39.99</span><span class="price-striked">$61.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.9星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品6 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Smart+Hub" class="w-full rounded-lg" alt="智能家居中枢"><span class="absolute top-2 left-2 discount-badge">-28%</span></div>
-                    <h3 class="font-bold text-lg">智能家居网关Hub</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$54.99</span><span class="price-striked">$76.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="far fa-star text-gray-300 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.5星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-            </div>
-            <div class="text-center mt-10"><a href="#" class="inline-flex items-center gap-2 text-brand-orange font-semibold border-b border-brand-orange pb-1">查看全部爆款 <i class="fas fa-arrow-right text-xs"></i></a></div>
-        </div>
-    </section>
-
-    <!-- 品质/原厂优势区块 橙色点缀 -->
-    <section id="why" class="py-16 bg-gray-50/60">
-        <div class="container mx-auto px-5 max-w-5xl text-center">
-            <h2 class="text-3xl font-bold mb-3">为什么选择<span class="text-brand-orange"> CJ 原品</span></h2>
-            <p class="text-gray-500 mb-12">官方直供 · 每一件都经过严格质检</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div><i class="fas fa-crown text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">原厂品质</h3><p class="text-sm text-gray-500">工厂直达，拒绝中间商差价</p></div>
-                <div><i class="fas fa-clock text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">15天无忧退换</h3><p class="text-sm text-gray-500">售后闪电响应，安心保障</p></div>
-                <div><i class="fas fa-globe text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">全球极速物流</h3><p class="text-sm text-gray-500">72h发货，全程跟踪</p></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 悬浮聊天按钮 -->
-    <div class="landing-chat-btn" id="floatingChatBtn"><i class="fas fa-comment-dots text-2xl"></i></div>
-
-    <!-- 聊天界面 -->
-    <div class="chat-interface" id="chatInterface">
-        <div class="chat-header"><button class="back-btn" id="closeChatInterface"><i class="fas fa-arrow-left"></i></button><div class="font-bold">CJ 专属客服</div><div class="text-xs opacity-80">在线 · 秒回复</div></div>
-        <div class="messages-container" id="messagesContainer"></div>
-        <div class="input-area"><div class="input-wrapper"><input type="text" id="messageInput" placeholder="咨询折扣/产品..." autocomplete="off"></div><button class="send-btn" id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button></div>
-    </div>
-
-    <!-- 用户信息收集弹窗 -->
-    <div id="userInfoModal" class="info-modal"><div class="info-card"><div class="text-center"><i class="fas fa-headset text-4xl text-brand-orange mb-3"></i><h3>联系客服获取专属优惠</h3><p class="text-gray-400 text-sm">留下信息，客服将立即响应</p></div><form id="userInfoForm"><input type="text" id="userNameInput" placeholder="您的姓名" required><input type="email" id="userEmailInput" placeholder="电子邮箱" required><input type="tel" id="userPhoneInput" placeholder="手机号" required><textarea id="userAddressInput" rows="2" placeholder="发货地址（选填）"></textarea><button type="submit" class="start-btn">开始咨询 <i class="fas fa-arrow-right ml-1"></i></button></form></div></div>
-    <div id="toastMsg" class="toast-msg"></div>
-
-    <script>
-        (function(){
-            const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            let currentUser = { id:null, name:null, email:null, phone:null, address:null };
-            let realtimeChannel = null;
-            const userInfoModal = document.getElementById('userInfoModal');
-            const chatInterface = document.getElementById('chatInterface');
-            const messagesContainer = document.getElementById('messagesContainer');
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendMessageBtn');
-            const openNavBtn = document.getElementById('openChatNavBtn');
-            const heroChat = document.getElementById('heroChatBtn');
-            const floatingBtn = document.getElementById('floatingChatBtn');
-            const closeChat = document.getElementById('closeChatInterface');
-            const toastEl = document.getElementById('toastMsg');
-            const userInfoForm = document.getElementById('userInfoForm');
-            const userNameInput = document.getElementById('userNameInput'), userEmailInput = document.getElementById('userEmailInput'), userPhoneInput = document.getElementById('userPhoneInput'), userAddressInput = document.getElementById('userAddressInput');
-            function showToast(msg,isErr=false){ toastEl.textContent=msg; toastEl.style.opacity='1'; setTimeout(()=>toastEl.style.opacity='0',2200); }
-            function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-            function scrollBottom(){ setTimeout(()=>{ if(messagesContainer) messagesContainer.scrollTop=messagesContainer.scrollHeight; },100); }
-            function formatTime(d){ return new Date(d).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
-            function formatFull(d){ return new Date(d).toLocaleString('zh-CN'); }
-            async function loadMessagesAndReplies(){
-                if(!currentUser.email) return {messages:[],replies:[]};
-                let {data:messages}=await supabase.from('livechat_messages').select('*').eq('email',currentUser.email).order('created_at',{ascending:true});
-                if(!messages) messages=[];
-                let msgIds=messages.map(m=>m.id);
-                let {data:replies}=await supabase.from('message_replies').select('*').in('message_id',msgIds).not('reply','eq','（用户已查看）').order('created_at',{ascending:true});
-                return {messages,replies:replies||[]};
-            }
-            async function loadUserMessages(){
-                if(!currentUser.email) return;
-                let {messages,replies}=await loadMessagesAndReplies();
-                let repliesByMsg={};
-                for(let r of replies){ if(!repliesByMsg[r.message_id]) repliesByMsg[r.message_id]=[]; repliesByMsg[r.message_id].push(r); }
-                messagesContainer.innerHTML='';
-                let welcomeDiv=document.createElement('div');welcomeDiv.className='message admin';welcomeDiv.innerHTML=`<div class="bubble">🎁 您好 ${currentUser.name}！我是CJ专属客服，当前爆款限时优惠中，有什么可以帮您？</div><div class="message-time">${new Date().toLocaleTimeString()}</div>`;
-                messagesContainer.appendChild(welcomeDiv);
-                for(let msg of messages){
-                    let time=formatTime(msg.created_at);
-                    let userDiv=document.createElement('div');userDiv.className='message user';userDiv.setAttribute('data-msg-id',msg.id);
-                    userDiv.innerHTML=`<div class="bubble">${escapeHtml(msg.message)}</div><div class="message-time">${time}</div>`;
-                    messagesContainer.appendChild(userDiv);
-                    if(repliesByMsg[msg.id] && repliesByMsg[msg.id].length){
-                        let replyDiv=document.createElement('div');replyDiv.className='replies';
-                        for(let r of repliesByMsg[msg.id]) replyDiv.innerHTML+=`<div class="reply-item"><div class="reply-bubble">${escapeHtml(r.reply)}<div class="reply-time">${formatFull(r.created_at)}</div></div></div>`;
-                        messagesContainer.appendChild(replyDiv);
-                    }
-                }
-                scrollBottom();
-            }
-            async function sendMessage(){
-                let msg=messageInput.value.trim(); if(!msg) return;
-                sendBtn.disabled=true; let tempTime=new Date().toLocaleTimeString();
-                let tempDiv=document.createElement('div');tempDiv.className='message user';tempDiv.innerHTML=`<div class="bubble">${escapeHtml(msg)}</div><div class="message-time">${tempTime}</div>`;
-                messagesContainer.appendChild(tempDiv); scrollBottom(); messageInput.value='';
-                let {error}=await supabase.from('livechat_messages').insert([{name:currentUser.name,email:currentUser.email,phone:currentUser.phone,address:currentUser.address,message:msg,created_at:new Date().toISOString()}]);
-                if(error){ showToast('发送失败',true); tempDiv.remove(); } else showToast('已发送');
-                sendBtn.disabled=false; messageInput.focus();
-                setTimeout(()=>loadUserMessages(),500);
-            }
-            function setupRealtime(){
-                if(realtimeChannel) supabase.removeChannel(realtimeChannel);
-                realtimeChannel=supabase.channel(`user-${currentUser.email}`)
-                    .on('postgres_changes',{event:'INSERT',schema:'public',table:'livechat_messages',filter:`email=eq.${currentUser.email}`},()=>loadUserMessages())
-                    .on('postgres_changes',{event:'INSERT',schema:'public',table:'message_replies'},async()=>{
-                        let {messages}=await loadMessagesAndReplies();
-                        if(messages.length){ showToast('客服回复了您,请查看'); loadUserMessages(); }
-                    }).subscribe();
-            }
-            const saved=localStorage.getItem('chat_user');
-            if(saved){ try{ let u=JSON.parse(saved); if(u.email && u.name && u.phone){ currentUser=u; userInfoModal.classList.remove('show'); loadUserMessages(); setupRealtime(); } }catch(e){} }
-            userInfoForm.onsubmit=async(e)=>{
-                e.preventDefault();
-                let name=userNameInput.value.trim(),email=userEmailInput.value.trim(),phone=userPhoneInput.value.trim(),addr=userAddressInput.value.trim();
-                if(!name||!email||!phone){ showToast('请填写完整信息',true); return; }
-                currentUser={id:Date.now().toString(),name,email,phone,address:addr||''};
-                localStorage.setItem('chat_user',JSON.stringify(currentUser));
-                userInfoModal.classList.remove('show');
-                await loadUserMessages(); setupRealtime();
-                chatInterface.classList.add('open'); messageInput.focus();
-                showToast('欢迎！客服已在线');
-            };
-            function openChat(){ if(!currentUser.name||!currentUser.phone) userInfoModal.classList.add('show'); else { chatInterface.classList.add('open'); messageInput.focus(); loadUserMessages(); } }
-            openNavBtn.onclick=openChat; heroChat.onclick=openChat; floatingBtn.onclick=openChat; closeChat.onclick=()=>chatInterface.classList.remove('open');
-            sendBtn.onclick=sendMessage; messageInput.onkeypress=(e)=>{ if(e.key==='Enter') sendMessage(); };
-            // 倒计时demo (2小时)
-            let target=new Date(); target.setHours(target.getHours()+2);
-            function updateTimer(){ let now=new Date(), diff=Math.max(0,Math.floor((target-now)/1000)); let h=Math.floor(diff/3600),m=Math.floor((diff%3600)/60),s=diff%60; document.getElementById('hour').innerText=String(h).padStart(2,'0'); document.getElementById('minute').innerText=String(m).padStart(2,'0'); document.getElementById('second').innerText=String(s).padStart(2,'0'); if(diff<=0) document.getElementById('hour').innerText='00'; }
-            setInterval(updateTimer,1000); updateTimer();
-        })();
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CJ限时特卖 | 品质好物 全场折扣</title>
-    <!-- Tailwind CSS + Google Fonts + Font Awesome -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #ffffff; scroll-behavior: smooth; }
-        .brand-orange { color: #FF5F00; }
-        .bg-brand-orange { background-color: #FF5F00; }
-        .border-brand-orange { border-color: #FF5F00; }
-        .hover\:bg-brand-dark:hover { background-color: #e04e00; }
-        .gradient-hero {
-            background: linear-gradient(135deg, #fff8f2 0%, #ffffff 100%);
+        .replies { margin-top: 6px; margin-right: 12px; border-right: 2px solid #FF5F00; padding-right: 8px; }
+        .reply-item { margin-top: 6px; display: flex; justify-content: flex-start; }
+        .reply-bubble { background: white; border-left: 2px solid #FF5F00; padding: 6px 10px; border-radius: 14px; font-size: 12px; max-width: 90%; }
+        .input-row {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #edf2f7;
+            align-items: center;
         }
-        .price-striked {
-            font-size: 1rem;
-            color: #9ca3af;
-            text-decoration: line-through;
-            margin-right: 8px;
+        .input-row input {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            padding: 10px 14px;
+            outline: none;
+            font-size: 13px;
         }
-        .discount-badge {
+        .input-row input:focus { border-color: #FF5F00; }
+        .send-icon {
+            background: #FF5F00;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .send-icon:hover { background: #e04e00; }
+        .landing-chat-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 58px;
+            height: 58px;
             background: #FF5F00;
             color: white;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 20px;
-            display: inline-block;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(255,95,0,0.35);
+            z-index: 10000;
+            transition: 0.2s;
         }
-        .product-card {
-            transition: all 0.25s ease;
-            border: 1px solid #f0f0f0;
+        .landing-chat-btn:hover { transform: scale(1.05); background: #e04e00; }
+        .info-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 10002;
         }
-        .product-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.08);
-            border-color: #FF5F00;
-        }
-        .chat-interface {
-            position: fixed; bottom: 0; left: 0; right: 0; top: 0;
-            background: #ffffff; z-index: 10000; display: none; flex-direction: column;
-        }
-        .chat-interface.open { display: flex; }
-        .chat-header {
-            background: #1a1a2e; color: white; padding: 16px 20px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .messages-container { flex: 1; overflow-y: auto; padding: 20px; background: #f8f9fc; display: flex; flex-direction: column; gap: 12px; }
-        .message { display: flex; max-width: 80%; margin-bottom: 4px; }
-        .message.user { align-self: flex-end; justify-content: flex-end; }
-        .message.admin { align-self: flex-start; }
-        .bubble { padding: 10px 14px; border-radius: 18px; word-wrap: break-word; max-width: 100%; }
-        .user .bubble { background: #FF5F00; color: white; border-bottom-right-radius: 4px; }
-        .admin .bubble { background: white; color: #1f2937; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .message-time { font-size: 10px; margin-top: 4px; color: #9ca3af; }
-        .user .message-time { text-align: right; }
-        .replies { margin-top: 8px; margin-right: 20px; border-right: 2px solid #FF5F00; padding-right: 12px; }
-        .reply-item { margin-top: 8px; display: flex; justify-content: flex-start; }
-        .reply-bubble { background: white; color: #1f2937; padding: 8px 12px; border-radius: 18px; font-size: 12px; max-width: 80%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left: 2px solid #FF5F00; }
-        .input-area { background: white; border-top: 1px solid #eef2f6; padding: 12px 16px; display: flex; gap: 12px; align-items: center; }
-        .input-wrapper { flex: 1; display: flex; gap: 8px; align-items: center; background: #f2f4f8; border-radius: 28px; padding: 4px 8px 4px 16px; }
-        .input-wrapper input { flex: 1; background: transparent; border: none; padding: 10px 0; outline: none; font-size: 15px; }
-        .send-btn { background: #FF5F00; border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .send-btn:hover { background: #e04e00; transform: scale(1.02); }
-        .info-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10001; }
         .info-modal.show { display: flex; }
-        .info-card { background: white; border-radius: 32px; padding: 28px; width: 460px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
-        .info-card h3 { font-size: 26px; font-weight: 700; color: #FF5F00; margin-bottom: 8px; }
-        .info-card input, .info-card textarea { width: 100%; border: 1px solid #e9eef3; border-radius: 20px; padding: 12px 18px; margin-bottom: 16px; outline: none; transition: 0.2s; font-family: inherit; }
-        .info-card input:focus, .info-card textarea:focus { border-color: #FF5F00; box-shadow: 0 0 0 3px rgba(255,95,0,0.1); }
-        .start-btn { width: 100%; background: #FF5F00; color: white; border: none; padding: 14px; border-radius: 40px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .start-btn:hover { background: #e04e00; }
-        .landing-chat-btn { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background: #FF5F00; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 20px rgba(255,95,0,0.4); z-index: 9999; transition: 0.2s; }
-        .landing-chat-btn:hover { transform: scale(1.08); background: #e04e00; }
-        .toast-msg { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 8px 18px; border-radius: 40px; font-size: 13px; opacity: 0; transition: 0.2s; z-index: 10002; pointer-events: none; white-space: nowrap; }
-        .flash-sale-bar { background: #FFF1E6; border-radius: 40px; display: inline-flex; align-items: center; gap: 12px; padding: 6px 18px; }
-        .timer-number { background: #FF5F00; color: white; border-radius: 8px; padding: 2px 8px; font-weight: 700; font-size: 18px; }
-        .btn-outline-orange { border: 1px solid #FF5F00; color: #FF5F00; background: transparent; transition: 0.2s; }
-        .btn-outline-orange:hover { background: #FF5F00; color: white; }
-        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-up { animation: fadeSlideUp 0.3s ease-out; }
+        .info-card {
+            background: white; border-radius: 32px; padding: 28px; width: 440px; max-width: 90%;
+        }
+        .info-card input, .info-card textarea {
+            width: 100%; border: 1px solid #e2e8f0; border-radius: 20px; padding: 12px 18px; margin-bottom: 16px;
+        }
+        .info-card input:focus, .info-card textarea:focus { border-color: #FF5F00; outline: none; }
+        .start-btn { background: #FF5F00; color: white; width: 100%; padding: 12px; border-radius: 40px; font-weight: 700; border: none; cursor: pointer; }
+        .toast-msg {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: #1f2937; color: white; padding: 6px 16px; border-radius: 40px; font-size: 12px;
+            opacity: 0; transition: 0.2s; z-index: 10003; pointer-events: none;
+        }
+        .flash-sale-bar { background: #FFF1E6; border-radius: 40px; display: inline-flex; align-items: center; gap: 10px; padding: 4px 16px; }
+        .timer-number { background: #FF5F00; color: white; border-radius: 8px; padding: 2px 8px; font-weight: 700; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeUp 0.2s ease; }
     </style>
 </head>
 <body>
 
-    <!-- 导航栏 / 白底+橙色点缀 -->
+    <!-- 导航栏 马来西亚华人友好 (中英混合/本地化) -->
     <nav class="bg-white/95 backdrop-blur-sm fixed top-0 left-0 w-full z-50 border-b border-gray-100 shadow-sm">
         <div class="container mx-auto px-5 py-3 flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-brand-orange rounded-xl flex items-center justify-center shadow-sm">
+                <div class="w-8 h-8 bg-brand-orange rounded-xl flex items-center justify-center">
                     <i class="fas fa-fire text-white text-sm"></i>
                 </div>
-                <span class="font-extrabold text-xl tracking-tight">CJ<span class="text-brand-orange">·OFF</span></span>
+                <span class="font-extrabold text-xl tracking-tight">CJ<span class="text-brand-orange">·MY</span></span>
+                <span class="text-xs text-gray-400 ml-1 hidden sm:inline">大马免运</span>
             </div>
             <div class="hidden md:flex gap-6 text-sm font-medium text-gray-700">
-                <a href="#" class="hover:text-brand-orange transition">首页</a>
-                <a href="#products" class="hover:text-brand-orange transition">热卖爆款</a>
-                <a href="#why" class="hover:text-brand-orange transition">品质保障</a>
+                <a href="#" class="hover:text-brand-orange">首页</a>
+                <a href="#products" class="hover:text-brand-orange">热卖爆款</a>
+                <a href="#why" class="hover:text-brand-orange">品质保证</a>
             </div>
-            <button id="openChatNavBtn" class="bg-brand-orange text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm hover:shadow-md transition flex items-center gap-1">
+            <button id="openChatNavBtn" class="bg-brand-orange text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm flex items-center gap-1">
                 <i class="fas fa-headset"></i> 客服
             </button>
         </div>
     </nav>
 
-    <!-- HERO 限时抢购区域 -->
+    <!-- HERO 区域 马来西亚风格 + 限时优惠 -->
     <section class="pt-28 pb-12 md:pt-32 gradient-hero">
         <div class="container mx-auto px-5 max-w-6xl">
             <div class="flex flex-col md:flex-row items-center gap-10">
                 <div class="flex-1 text-center md:text-left">
                     <div class="flash-sale-bar mb-5">
-                        <i class="fas fa-bolt text-brand-orange text-sm"></i>
-                        <span class="text-xs font-semibold text-gray-700">限时闪购</span>
+                        <i class="fas fa-bolt text-brand-orange text-xs"></i>
+                        <span class="text-xs font-semibold text-gray-700">限时闪购 · 全马包邮</span>
                         <div class="flex gap-1 text-sm font-mono font-bold"><span id="hour">00</span>:<span id="minute">00</span>:<span id="second">00</span></div>
                     </div>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight">高质感<span class="text-brand-orange"> 智能生活</span> 系列</h1>
-                    <p class="text-gray-500 text-lg mt-4 max-w-lg mx-auto md:mx-0">德国工艺 · 原装品质 · 限时低至5折</p>
-                    <div class="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
-                        <div class="bg-gray-50 px-5 py-2 rounded-full flex items-center gap-2"><i class="fas fa-truck text-brand-orange"></i><span class="text-sm font-medium">极速发货</span></div>
-                        <div class="bg-gray-50 px-5 py-2 rounded-full flex items-center gap-2"><i class="fas fa-shield-alt text-brand-orange"></i><span class="text-sm font-medium">两年质保</span></div>
-                        <div class="bg-gray-50 px-5 py-2 rounded-full flex items-center gap-2"><i class="fas fa-undo-alt text-brand-orange"></i><span class="text-sm font-medium">7天无理由</span></div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight">品质好物 <span class="text-brand-orange">直降60%</span></h1>
+                    <p class="text-gray-500 text-lg mt-4">马来西亚现货 · 西马隔日达 · 中文客服在线</p>
+                    <div class="flex flex-wrap gap-3 mt-6 justify-center md:justify-start">
+                        <div class="bg-gray-50 px-4 py-2 rounded-full flex items-center gap-2"><i class="fas fa-truck text-brand-orange"></i><span class="text-sm">免邮费</span></div>
+                        <div class="bg-gray-50 px-4 py-2 rounded-full flex items-center gap-2"><i class="fas fa-shield-alt text-brand-orange"></i><span class="text-sm">原厂保固</span></div>
+                        <div class="bg-gray-50 px-4 py-2 rounded-full flex items-center gap-2"><i class="fas fa-language text-brand-orange"></i><span class="text-sm">中文客服</span></div>
                     </div>
                     <div class="mt-8">
-                        <button id="heroChatBtn" class="bg-brand-orange text-white px-8 py-3 rounded-full font-bold text-lg shadow-md hover:shadow-lg transition flex items-center gap-2 mx-auto md:mx-0"><i class="fas fa-gift"></i> 咨询优惠</button>
+                        <button id="heroChatBtn" class="bg-brand-orange text-white px-7 py-3 rounded-full font-bold shadow-md flex items-center gap-2 mx-auto md:mx-0"><i class="fas fa-gift"></i> 领取优惠券</button>
                     </div>
                 </div>
                 <div class="flex-1 relative">
-                    <div class="bg-white rounded-3xl shadow-2xl p-3 border border-gray-100">
-                        <img src="https://placehold.co/600x500/f8f9fc/FF5F00?text=Premium+Product" alt="主力商品" class="rounded-2xl w-full object-cover">
-                        <div class="absolute top-4 left-4 bg-brand-orange text-white px-4 py-1 rounded-full text-sm font-bold shadow-md">-40% OFF</div>
-                        <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold shadow">🔥 今日已售 1.2k+</div>
+                    <div class="bg-white rounded-3xl shadow-xl p-3 border border-gray-100">
+                        <img src="https://placehold.co/600x480/fef3e8/FF5F00?text=Main+Product" alt="主打商品" class="rounded-2xl w-full">
+                        <div class="absolute top-4 left-4 bg-brand-orange text-white px-3 py-1 rounded-full text-sm font-bold">热卖中</div>
+                        <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-medium shadow">🇲🇾 今日订单爆满</div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 产品列表区域 主白+橙色价格/折扣 (可自由增删商品) -->
+    <!-- 商品列表 可自由修改增删 -->
     <section id="products" class="py-16 bg-white">
         <div class="container mx-auto px-5 max-w-6xl">
             <div class="text-center mb-10">
-                <span class="text-brand-orange font-semibold tracking-wide">精选好物</span>
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-2">爆款直降 <span class="border-b-4 border-brand-orange">最后补货</span></h2>
+                <span class="text-brand-orange font-semibold tracking-wide">🔥 人气爆款</span>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-2">大家都在买 <span class="border-b-4 border-brand-orange">限时折扣</span></h2>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
-                <!-- 商品1 - 可任意修改图片/名称/价格/折扣 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Smart+Watch" class="w-full rounded-lg" alt="智能手表"><span class="absolute top-2 left-2 discount-badge">-30%</span></div>
-                    <h3 class="font-bold text-lg">极光系列 智能手表</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$89.99</span><span class="price-striked">$129.99</span><span class="text-xs text-green-600">含税包邮</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star-half-alt text-yellow-400 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.8星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
+                <!-- 商品1 马来西亚华人常用价位 RM 示意 -->
+                <div class="product-card bg-white rounded-2xl p-5">
+                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Smart+Watch+MY" class="w-full rounded-lg"><span class="absolute top-2 left-2 discount-badge">-35%</span></div>
+                    <h3 class="font-bold text-lg">极光智能手表 (国际版)</h3>
+                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">RM 169</span><span class="price-striked">RM 259</span></div>
+                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star-half-alt text-yellow-400"></i><span class="text-xs text-gray-400">(4.8星)</span></div>
+                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
                 </div>
-                <!-- 商品2 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Noise+Cancelling" class="w-full rounded-lg" alt="降噪耳机"><span class="absolute top-2 left-2 discount-badge">-25%</span></div>
+                <div class="product-card bg-white rounded-2xl p-5">
+                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=ANC+Headphones" class="w-full rounded-lg"><span class="absolute top-2 left-2 discount-badge">-28%</span></div>
                     <h3 class="font-bold text-lg">ANC主动降噪耳机</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$119.99</span><span class="price-striked">$159.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.9星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
+                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">RM 229</span><span class="price-striked">RM 319</span></div>
+                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><span class="text-xs text-gray-400">(4.9星)</span></div>
+                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
                 </div>
-                <!-- 商品3 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Magnetic+Charger" class="w-full rounded-lg" alt="磁吸充电宝"><span class="absolute top-2 left-2 discount-badge">-50%</span></div>
-                    <h3 class="font-bold text-lg">磁吸充电宝 10000mAh</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$29.99</span><span class="price-striked">$59.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="far fa-star text-gray-300 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.6星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
+                <div class="product-card bg-white rounded-2xl p-5">
+                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Powerbank" class="w-full rounded-lg"><span class="absolute top-2 left-2 discount-badge">-40%</span></div>
+                    <h3 class="font-bold text-lg">磁吸快充 20000mAh</h3>
+                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">RM 99</span><span class="price-striked">RM 165</span></div>
+                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="far fa-star text-gray-300"></i><span class="text-xs text-gray-400">(4.6星)</span></div>
+                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
                 </div>
-                <!-- 商品4 - 示例新增商品 (自由增删) -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Wireless+Mouse" class="w-full rounded-lg" alt="无线鼠标"><span class="absolute top-2 left-2 discount-badge">-20%</span></div>
-                    <h3 class="font-bold text-lg">人体工学静音鼠标</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$24.99</span><span class="price-striked">$31.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="far fa-star text-gray-300 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.7星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品5 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Fast+Charger" class="w-full rounded-lg" alt="氮化镓充电器"><span class="absolute top-2 left-2 discount-badge">-35%</span></div>
-                    <h3 class="font-bold text-lg">65W氮化镓快充头</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$39.99</span><span class="price-striked">$61.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.9星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
-                </div>
-                <!-- 商品6 -->
-                <div class="product-card bg-white rounded-2xl overflow-hidden p-5 transition-all">
-                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Smart+Hub" class="w-full rounded-lg" alt="智能家居中枢"><span class="absolute top-2 left-2 discount-badge">-28%</span></div>
-                    <h3 class="font-bold text-lg">智能家居网关Hub</h3>
-                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">$54.99</span><span class="price-striked">$76.99</span></div>
-                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="fas fa-star text-yellow-400 text-xs"></i><i class="far fa-star text-gray-300 text-xs"></i><span class="text-xs text-gray-400 ml-1">(4.5星)</span></div>
-                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full text-sm font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
+                <!-- 可继续增加商品 -->
+                <div class="product-card bg-white rounded-2xl p-5">
+                    <div class="relative bg-gray-50 rounded-xl p-2 mb-4"><img src="https://placehold.co/400x300/ffffff/FF5F00?text=Wireless+Mouse" class="w-full rounded-lg"><span class="absolute top-2 left-2 discount-badge">-20%</span></div>
+                    <h3 class="font-bold text-lg">静音无线鼠标</h3>
+                    <div class="flex items-baseline gap-2 mt-1"><span class="text-2xl font-bold text-brand-orange">RM 49</span><span class="price-striked">RM 62</span></div>
+                    <div class="flex items-center gap-1 mt-2"><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="far fa-star"></i><span class="text-xs text-gray-400">(4.7星)</span></div>
+                    <button class="w-full mt-4 border border-brand-orange text-brand-orange py-2 rounded-full font-semibold hover:bg-brand-orange hover:text-white transition">立即抢购</button>
                 </div>
             </div>
-            <div class="text-center mt-10"><a href="#" class="inline-flex items-center gap-2 text-brand-orange font-semibold border-b border-brand-orange pb-1">查看全部爆款 <i class="fas fa-arrow-right text-xs"></i></a></div>
+            <div class="text-center mt-10"><a href="#" class="inline-flex items-center gap-1 text-brand-orange font-semibold border-b border-brand-orange">查看所有商品 <i class="fas fa-arrow-right text-xs"></i></a></div>
         </div>
     </section>
 
-    <!-- 品质/原厂优势区块 橙色点缀 -->
-    <section id="why" class="py-16 bg-gray-50/60">
+    <!-- 品质保障区块 -->
+    <section id="why" class="py-16 bg-gray-50/50">
         <div class="container mx-auto px-5 max-w-5xl text-center">
-            <h2 class="text-3xl font-bold mb-3">为什么选择<span class="text-brand-orange"> CJ 原品</span></h2>
-            <p class="text-gray-500 mb-12">官方直供 · 每一件都经过严格质检</p>
+            <h2 class="text-3xl font-bold mb-3">为什么<span class="text-brand-orange"> 大马买家 </span>都选CJ</h2>
+            <p class="text-gray-500 mb-10">本地仓发货 · 中文支援 · 售后无忧</p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div><i class="fas fa-crown text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">原厂品质</h3><p class="text-sm text-gray-500">工厂直达，拒绝中间商差价</p></div>
-                <div><i class="fas fa-clock text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">15天无忧退换</h3><p class="text-sm text-gray-500">售后闪电响应，安心保障</p></div>
-                <div><i class="fas fa-globe text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">全球极速物流</h3><p class="text-sm text-gray-500">72h发货，全程跟踪</p></div>
+                <div><i class="fas fa-warehouse text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">马来西亚现货</h3><p class="text-sm text-gray-500">吉隆坡仓发货，1-3天送达</p></div>
+                <div><i class="fas fa-headset text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">全中文客服</h3><p class="text-sm text-gray-500">华语/粤语/闽南语 都通</p></div>
+                <div><i class="fas fa-money-bill-wave text-4xl text-brand-orange mb-3"></i><h3 class="font-bold">免息分期</h3><p class="text-sm text-gray-500">支持 GrabPay / Atome</p></div>
             </div>
         </div>
     </section>
 
-    <!-- 悬浮聊天按钮 -->
-    <div class="landing-chat-btn" id="floatingChatBtn"><i class="fas fa-comment-dots text-2xl"></i></div>
-
-    <!-- 聊天界面 -->
-    <div class="chat-interface" id="chatInterface">
-        <div class="chat-header"><button class="back-btn" id="closeChatInterface"><i class="fas fa-arrow-left"></i></button><div class="font-bold">CJ 专属客服</div><div class="text-xs opacity-80">在线 · 秒回复</div></div>
-        <div class="messages-container" id="messagesContainer"></div>
-        <div class="input-area"><div class="input-wrapper"><input type="text" id="messageInput" placeholder="咨询折扣/产品..." autocomplete="off"></div><button class="send-btn" id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button></div>
+    <!-- 右下角聊天浮窗按钮 -->
+    <div class="landing-chat-btn" id="floatingChatBtn">
+        <i class="fas fa-comment-dots text-2xl"></i>
     </div>
 
-    <!-- 用户信息收集弹窗 -->
-    <div id="userInfoModal" class="info-modal"><div class="info-card"><div class="text-center"><i class="fas fa-headset text-4xl text-brand-orange mb-3"></i><h3>联系客服获取专属优惠</h3><p class="text-gray-400 text-sm">留下信息，客服将立即响应</p></div><form id="userInfoForm"><input type="text" id="userNameInput" placeholder="您的姓名" required><input type="email" id="userEmailInput" placeholder="电子邮箱" required><input type="tel" id="userPhoneInput" placeholder="手机号" required><textarea id="userAddressInput" rows="2" placeholder="发货地址（选填）"></textarea><button type="submit" class="start-btn">开始咨询 <i class="fas fa-arrow-right ml-1"></i></button></form></div></div>
+    <!-- 聊天窗 (电脑版右下角弹窗，非全屏) -->
+    <div id="chatWidget" class="chat-widget">
+        <div class="chat-header">
+            <h4><i class="fas fa-headset"></i> CJ 客服·中文在线</h4>
+            <button class="close-chat" id="closeWidgetBtn">&times;</button>
+        </div>
+        <div class="chat-messages-area" id="chatMessagesArea"></div>
+        <div class="input-row">
+            <input type="text" id="msgInputWidget" placeholder="输入消息..." autocomplete="off">
+            <button class="send-icon" id="sendWidgetBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- 用户信息收集弹窗 (第一次打开客服时) -->
+    <div id="userInfoModal" class="info-modal">
+        <div class="info-card text-center">
+            <i class="fas fa-user-circle text-5xl text-brand-orange mb-3"></i>
+            <h3 class="text-2xl font-bold">马上联系客服</h3>
+            <p class="text-gray-400 text-sm mb-4">获取专属优惠链接 + 实时回复</p>
+            <form id="userInfoForm">
+                <input type="text" id="userNameInput" placeholder="您的称呼" required>
+                <input type="email" id="userEmailInput" placeholder="电子邮箱 / 手机号码" required>
+                <input type="tel" id="userPhoneInput" placeholder="手机号(方便通知)" required>
+                <textarea id="userAddressInput" rows="2" placeholder="地址(选填)"></textarea>
+                <button type="submit" class="start-btn">开始对话 <i class="fas fa-arrow-right ml-1"></i></button>
+            </form>
+        </div>
+    </div>
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
-        (function(){
+        (function() {
             const SUPABASE_URL = 'https://fflovhydzllmzqbvwktt.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmbG92aHlkemxsbXpxYnZ3a3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzY4NjAsImV4cCI6MjA5NzAxMjg2MH0.vMOp1pFEb6G4bj6iyAyR7KU5itGdoAoIZXaNuT6qZm4';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            let currentUser = { id:null, name:null, email:null, phone:null, address:null };
+            let currentUser = { id: null, name: null, email: null, phone: null, address: null };
             let realtimeChannel = null;
+            
+            // DOM 元素
             const userInfoModal = document.getElementById('userInfoModal');
-            const chatInterface = document.getElementById('chatInterface');
-            const messagesContainer = document.getElementById('messagesContainer');
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendMessageBtn');
-            const openNavBtn = document.getElementById('openChatNavBtn');
-            const heroChat = document.getElementById('heroChatBtn');
+            const chatWidget = document.getElementById('chatWidget');
+            const messagesArea = document.getElementById('chatMessagesArea');
+            const msgInput = document.getElementById('msgInputWidget');
+            const sendBtn = document.getElementById('sendWidgetBtn');
+            const openNav = document.getElementById('openChatNavBtn');
+            const heroBtn = document.getElementById('heroChatBtn');
             const floatingBtn = document.getElementById('floatingChatBtn');
-            const closeChat = document.getElementById('closeChatInterface');
+            const closeWidget = document.getElementById('closeWidgetBtn');
             const toastEl = document.getElementById('toastMsg');
             const userInfoForm = document.getElementById('userInfoForm');
-            const userNameInput = document.getElementById('userNameInput'), userEmailInput = document.getElementById('userEmailInput'), userPhoneInput = document.getElementById('userPhoneInput'), userAddressInput = document.getElementById('userAddressInput');
-            function showToast(msg,isErr=false){ toastEl.textContent=msg; toastEl.style.opacity='1'; setTimeout(()=>toastEl.style.opacity='0',2200); }
-            function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-            function scrollBottom(){ setTimeout(()=>{ if(messagesContainer) messagesContainer.scrollTop=messagesContainer.scrollHeight; },100); }
-            function formatTime(d){ return new Date(d).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
-            function formatFull(d){ return new Date(d).toLocaleString('zh-CN'); }
-            async function loadMessagesAndReplies(){
-                if(!currentUser.email) return {messages:[],replies:[]};
-                let {data:messages}=await supabase.from('livechat_messages').select('*').eq('email',currentUser.email).order('created_at',{ascending:true});
+            const userNameInp = document.getElementById('userNameInput'), userEmailInp = document.getElementById('userEmailInput'), userPhoneInp = document.getElementById('userPhoneInput'), userAddrInp = document.getElementById('userAddressInput');
+            
+            function showToast(msg) { toastEl.textContent = msg; toastEl.style.opacity = '1'; setTimeout(() => toastEl.style.opacity = '0', 2200); }
+            function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+            function scrollChatBottom() { setTimeout(() => { if(messagesArea) messagesArea.scrollTop = messagesArea.scrollHeight; }, 100); }
+            function formatTime(d) { return new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+            function formatFull(d) { return new Date(d).toLocaleString('zh-MY'); }
+            
+            async function loadMessagesAndReplies() {
+                if(!currentUser.email) return {messages:[], replies:[]};
+                let {data:messages} = await supabase.from('livechat_messages').select('*').eq('email',currentUser.email).order('created_at',{ascending:true});
                 if(!messages) messages=[];
-                let msgIds=messages.map(m=>m.id);
-                let {data:replies}=await supabase.from('message_replies').select('*').in('message_id',msgIds).not('reply','eq','（用户已查看）').order('created_at',{ascending:true});
-                return {messages,replies:replies||[]};
+                let msgIds = messages.map(m=>m.id);
+                let {data:replies} = await supabase.from('message_replies').select('*').in('message_id',msgIds).not('reply','eq','（用户已查看）').order('created_at',{ascending:true});
+                return {messages, replies:replies||[]};
             }
-            async function loadUserMessages(){
+            
+            async function loadMessagesUI() {
                 if(!currentUser.email) return;
-                let {messages,replies}=await loadMessagesAndReplies();
-                let repliesByMsg={};
-                for(let r of replies){ if(!repliesByMsg[r.message_id]) repliesByMsg[r.message_id]=[]; repliesByMsg[r.message_id].push(r); }
-                messagesContainer.innerHTML='';
-                let welcomeDiv=document.createElement('div');welcomeDiv.className='message admin';welcomeDiv.innerHTML=`<div class="bubble">🎁 您好 ${currentUser.name}！我是CJ专属客服，当前爆款限时优惠中，有什么可以帮您？</div><div class="message-time">${new Date().toLocaleTimeString()}</div>`;
-                messagesContainer.appendChild(welcomeDiv);
-                for(let msg of messages){
-                    let time=formatTime(msg.created_at);
-                    let userDiv=document.createElement('div');userDiv.className='message user';userDiv.setAttribute('data-msg-id',msg.id);
-                    userDiv.innerHTML=`<div class="bubble">${escapeHtml(msg.message)}</div><div class="message-time">${time}</div>`;
-                    messagesContainer.appendChild(userDiv);
-                    if(repliesByMsg[msg.id] && repliesByMsg[msg.id].length){
-                        let replyDiv=document.createElement('div');replyDiv.className='replies';
-                        for(let r of repliesByMsg[msg.id]) replyDiv.innerHTML+=`<div class="reply-item"><div class="reply-bubble">${escapeHtml(r.reply)}<div class="reply-time">${formatFull(r.created_at)}</div></div></div>`;
-                        messagesContainer.appendChild(replyDiv);
+                let {messages, replies} = await loadMessagesAndReplies();
+                let repliesByMsg = {};
+                for(let r of replies) { if(!repliesByMsg[r.message_id]) repliesByMsg[r.message_id]=[]; repliesByMsg[r.message_id].push(r); }
+                messagesArea.innerHTML = '';
+                let welcomeDiv = document.createElement('div'); welcomeDiv.className = 'message admin';
+                welcomeDiv.innerHTML = `<div class="bubble">👋 您好 ${currentUser.name}，我是CJ中文客服，今天有限时优惠，请问想了解哪一款呢？</div><div class="message-time">${new Date().toLocaleTimeString()}</div>`;
+                messagesArea.appendChild(welcomeDiv);
+                for(let msg of messages) {
+                    let time = formatTime(msg.created_at);
+                    let userDiv = document.createElement('div'); userDiv.className = 'message user';
+                    userDiv.innerHTML = `<div class="bubble">${escapeHtml(msg.message)}</div><div class="message-time">${time}</div>`;
+                    messagesArea.appendChild(userDiv);
+                    if(repliesByMsg[msg.id] && repliesByMsg[msg.id].length) {
+                        let replyContainer = document.createElement('div'); replyContainer.className = 'replies';
+                        for(let r of repliesByMsg[msg.id]) {
+                            replyContainer.innerHTML += `<div class="reply-item"><div class="reply-bubble">${escapeHtml(r.reply)}<div class="message-time" style="font-size:8px;">${formatFull(r.created_at)}</div></div></div>`;
+                        }
+                        messagesArea.appendChild(replyContainer);
                     }
                 }
-                scrollBottom();
+                scrollChatBottom();
             }
-            async function sendMessage(){
-                let msg=messageInput.value.trim(); if(!msg) return;
-                sendBtn.disabled=true; let tempTime=new Date().toLocaleTimeString();
-                let tempDiv=document.createElement('div');tempDiv.className='message user';tempDiv.innerHTML=`<div class="bubble">${escapeHtml(msg)}</div><div class="message-time">${tempTime}</div>`;
-                messagesContainer.appendChild(tempDiv); scrollBottom(); messageInput.value='';
-                let {error}=await supabase.from('livechat_messages').insert([{name:currentUser.name,email:currentUser.email,phone:currentUser.phone,address:currentUser.address,message:msg,created_at:new Date().toISOString()}]);
-                if(error){ showToast('发送失败',true); tempDiv.remove(); } else showToast('已发送');
-                sendBtn.disabled=false; messageInput.focus();
-                setTimeout(()=>loadUserMessages(),500);
+            
+            async function sendMessage() {
+                let message = msgInput.value.trim();
+                if(!message) return;
+                sendBtn.disabled = true;
+                let tempDiv = document.createElement('div'); tempDiv.className = 'message user';
+                tempDiv.innerHTML = `<div class="bubble">${escapeHtml(message)}</div><div class="message-time">${new Date().toLocaleTimeString()}</div>`;
+                messagesArea.appendChild(tempDiv); scrollChatBottom(); msgInput.value = '';
+                let {error} = await supabase.from('livechat_messages').insert([{
+                    name: currentUser.name, email: currentUser.email, phone: currentUser.phone, address: currentUser.address,
+                    message: message, created_at: new Date().toISOString()
+                }]);
+                if(error) { showToast('发送失败'); tempDiv.remove(); } else { showToast('已发送'); }
+                sendBtn.disabled = false; msgInput.focus();
+                setTimeout(()=> loadMessagesUI(), 500);
             }
-            function setupRealtime(){
+            
+            function setupRealtime() {
                 if(realtimeChannel) supabase.removeChannel(realtimeChannel);
-                realtimeChannel=supabase.channel(`user-${currentUser.email}`)
-                    .on('postgres_changes',{event:'INSERT',schema:'public',table:'livechat_messages',filter:`email=eq.${currentUser.email}`},()=>loadUserMessages())
-                    .on('postgres_changes',{event:'INSERT',schema:'public',table:'message_replies'},async()=>{
-                        let {messages}=await loadMessagesAndReplies();
-                        if(messages.length){ showToast('客服回复了您,请查看'); loadUserMessages(); }
+                realtimeChannel = supabase.channel(`user-${currentUser.email}`)
+                    .on('postgres_changes',{event:'INSERT', schema:'public', table:'livechat_messages', filter:`email=eq.${currentUser.email}`}, ()=> loadMessagesUI())
+                    .on('postgres_changes',{event:'INSERT', schema:'public', table:'message_replies'}, async()=>{
+                        let {messages} = await loadMessagesAndReplies();
+                        if(messages.length) { showToast('客服回复了您'); loadMessagesUI(); }
                     }).subscribe();
             }
-            const saved=localStorage.getItem('chat_user');
-            if(saved){ try{ let u=JSON.parse(saved); if(u.email && u.name && u.phone){ currentUser=u; userInfoModal.classList.remove('show'); loadUserMessages(); setupRealtime(); } }catch(e){} }
-            userInfoForm.onsubmit=async(e)=>{
+            
+            // 打开聊天窗 (先校验用户信息)
+            function openChatWidget() {
+                if(!currentUser.name || !currentUser.phone) {
+                    userInfoModal.classList.add('show');
+                } else {
+                    chatWidget.classList.add('open');
+                    loadMessagesUI();
+                    msgInput.focus();
+                }
+            }
+            function closeChatWidget() { chatWidget.classList.remove('open'); }
+            
+            // 存储用户信息
+            const saved = localStorage.getItem('chat_user');
+            if(saved) { try{ let u=JSON.parse(saved); if(u.email && u.name && u.phone) { currentUser=u; setupRealtime(); } }catch(e){} }
+            
+            userInfoForm.onsubmit = async(e) => {
                 e.preventDefault();
-                let name=userNameInput.value.trim(),email=userEmailInput.value.trim(),phone=userPhoneInput.value.trim(),addr=userAddressInput.value.trim();
-                if(!name||!email||!phone){ showToast('请填写完整信息',true); return; }
-                currentUser={id:Date.now().toString(),name,email,phone,address:addr||''};
-                localStorage.setItem('chat_user',JSON.stringify(currentUser));
+                let name = userNameInp.value.trim(), email = userEmailInp.value.trim(), phone = userPhoneInp.value.trim(), addr = userAddrInp.value.trim();
+                if(!name || !email || !phone) { showToast('请填写完整信息', true); return; }
+                currentUser = { id: Date.now().toString(), name, email, phone, address: addr || '' };
+                localStorage.setItem('chat_user', JSON.stringify(currentUser));
                 userInfoModal.classList.remove('show');
-                await loadUserMessages(); setupRealtime();
-                chatInterface.classList.add('open'); messageInput.focus();
-                showToast('欢迎！客服已在线');
+                setupRealtime();
+                chatWidget.classList.add('open');
+                await loadMessagesUI();
+                msgInput.focus();
+                showToast('客服已在线，随时为您服务');
             };
-            function openChat(){ if(!currentUser.name||!currentUser.phone) userInfoModal.classList.add('show'); else { chatInterface.classList.add('open'); messageInput.focus(); loadUserMessages(); } }
-            openNavBtn.onclick=openChat; heroChat.onclick=openChat; floatingBtn.onclick=openChat; closeChat.onclick=()=>chatInterface.classList.remove('open');
-            sendBtn.onclick=sendMessage; messageInput.onkeypress=(e)=>{ if(e.key==='Enter') sendMessage(); };
-            // 倒计时demo (2小时)
-            let target=new Date(); target.setHours(target.getHours()+2);
-            function updateTimer(){ let now=new Date(), diff=Math.max(0,Math.floor((target-now)/1000)); let h=Math.floor(diff/3600),m=Math.floor((diff%3600)/60),s=diff%60; document.getElementById('hour').innerText=String(h).padStart(2,'0'); document.getElementById('minute').innerText=String(m).padStart(2,'0'); document.getElementById('second').innerText=String(s).padStart(2,'0'); if(diff<=0) document.getElementById('hour').innerText='00'; }
+            
+            // 事件绑定
+            openNav.onclick = openChatWidget; heroBtn.onclick = openChatWidget; floatingBtn.onclick = openChatWidget;
+            closeWidget.onclick = closeChatWidget;
+            sendBtn.onclick = sendMessage;
+            msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+            
+            // 倒计时 (2小时)
+            let target = new Date(); target.setHours(target.getHours()+2);
+            function updateTimer() {
+                let diff = Math.max(0, Math.floor((target - new Date())/1000));
+                document.getElementById('hour').innerText = String(Math.floor(diff/3600)).padStart(2,'0');
+                document.getElementById('minute').innerText = String(Math.floor((diff%3600)/60)).padStart(2,'0');
+                document.getElementById('second').innerText = String(diff%60).padStart(2,'0');
+            }
             setInterval(updateTimer,1000); updateTimer();
         })();
     </script>
